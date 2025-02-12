@@ -5,3 +5,8 @@ content-type: application/json
     "username": "Daniel",
     "password": "123"
 }
+
+###
+
+GET http://localhost:3000/auth/me
+authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJuYW1lIjoiRGFuaWVsIiwiaWF0IjoxNzM5MzYzNzczLCJleHAiOjE3Mzk0NTAxNzN9.dvLdCz0_oikj-2uHLj84s-87iWDtmWZsZGGK7QSqy7U
