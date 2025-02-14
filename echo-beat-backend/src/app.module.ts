@@ -8,9 +8,13 @@ import { ChatGateway } from './chat/chat.gateway';
 import { PrismaService } from './prisma/prisma.service';
 import { StreamingModule } from './streaming/streaming.module';
 import { SearchModule } from './search/search.module';
+import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, PlaylistsModule, StreamingModule, SearchModule],
+  imports: [ConfigModule.forRoot({
+    isGlobal: true, // Hace que las variables de entorno estén disponibles globalmente
+  }),AuthModule, UsersModule, PlaylistsModule, StreamingModule, SearchModule, PrismaModule],
   controllers: [AppController],
   providers: [AppService, ChatGateway, PrismaService],
 })

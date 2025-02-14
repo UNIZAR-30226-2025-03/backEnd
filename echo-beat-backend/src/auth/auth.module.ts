@@ -5,14 +5,18 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PrismaService } from 'src/prisma/prisma.service'; // un servicio global para inyectar Prisma
 import { UsersModule } from 'src/users/users.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
 
 @Module({
-  imports: [UsersModule,JwtModule.register({
-    global: true,
-    secret: 'e7b1b1d2790ef3424d8a14b5c7d14b4df423b59c53c8f4425d7bc64d4e7dfc21a8ed73c3447e239e3541c9d5c2b928e0',
-    signOptions: {expiresIn: '1d'}
-
-  })],
+  imports: [UsersModule,JwtModule.registerAsync({
+    imports: [ConfigModule],
+    inject: [ConfigService],
+    useFactory: (configService: ConfigService) => ({
+      secret: configService.get<string>('JWT_SECRET'), // Lee la variable de entorno JWT_SECRET
+      signOptions: { expiresIn: '1d' }, // Configuración del token
+    }),
+  }),],
   controllers: [AuthController],
   providers: [AuthService, PrismaService],
   exports: [AuthService], // si quieres usarlo en otros módulos

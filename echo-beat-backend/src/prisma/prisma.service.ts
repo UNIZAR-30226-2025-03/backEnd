@@ -1,20 +1,14 @@
-// src/prisma.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class PrismaService extends PrismaClient {
-  async createUser(username: string, password: string) {
-    return this.user.create({
-      data: {
-        username,
-        password,
-      },
-    });
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  async onModuleInit() {
+    await this.$connect(); // Conexión a la base de datos
   }
 
-  async getUsers() {
-    return this.user.findMany();
+  async onModuleDestroy() {
+    await this.$disconnect(); // Desconexión al destruir el módulo
   }
 }
 

@@ -1,18 +1,30 @@
 import { Injectable } from '@nestjs/common';
-
-export type User = {
-    userID: number
-    username: string
-    password: string
-}
-
-//Ejemplos de prueba, aqui tendría que usarse la BD
-const users: User[] = [{userID:1,username:'Daniel',password:'123'},{userID:2,username:'Carlos',password:'123456'}]
+import { PrismaService } from '../prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
 
 
 @Injectable()
 export class UsersService {
-    async findUserByName(username: string): Promise <User | undefined> {
-        return users.find((user) => user.username === username);
-    }
+  constructor(private readonly prisma: PrismaService) {}
+
+
+async createUser(username: string, password: string) {
+  const hashedPassword = await bcrypt.hash(password, 10); // Cifra la contraseña
+  return this.prisma.user.create({
+    data: {
+      username,
+      password: hashedPassword, // Guarda la contraseña cifrada
+    },
+  });
+}
+
+
+async findUserByUsername(username: string) {
+    return this.prisma.user.findFirst({ //NO VA CON UNIQUE NO SE PORQUE COJONES NO ME LO PILLA COMO PRIMARIO EL USERNAME
+      where: {
+        username,
+      },
+    });
+  }
+ 
 }
