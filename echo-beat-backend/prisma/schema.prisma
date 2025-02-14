@@ -16,9 +16,177 @@ generator client {
 }
 
 
-model User {
-  username String  @id               // Clave primaria basada en el username
-  password String                     // Contraseña
+// model User {
+//   username String  @id               // Clave primaria basada en el username
+//   password String                     // Contraseña
+// }
+
+model Usuario {
+  Email                   String    @id
+  Password                String
+  Edad                    Int?
+  Nick                    String @unique  
+  LinkFoto                String?
+  BooleanPrivacidad       String @default("false")
+  UltimaListaEscuchada    Int?
+  UltimaCancionEscuchada  Int?
+  listas                  ListaReproduccion[]
+  cancionesGuardadas      CancionGuardada[]
+  cancionesEscuchadas     CancionEscuchada[]
+  mensajesEnviados        Mensaje[] @relation("MensajesEnviados")
+  mensajesRecibidos       Mensaje[] @relation("MensajesRecibidos")
+  preferencias            Preferencia[]
+  amistadesEnviadas       Amistad[] @relation("AmistadesEnviadas")
+  amistadesRecibidas      Amistad[] @relation("AmistadesRecibidas")
+}
+
+model Artista {
+  Nombre                 String  @id
+  Biografia              String
+  NumOyentesMensuales    Int    @default(0)
+  FotoPerfil             String
+  albums                 AutorAlbum[]
+  canciones              AutorCancion[]
+}
+
+model Album {
+  Id                     Int      @id @unique
+  NumReproducciones      Int      @default(0)
+  FechaLanzamiento       DateTime @default(now())
+
+  lista                  Lista   @relation(fields: [Id], references: [Id], onDelete: Cascade)
+  autores                AutorAlbum[]
+}
+
+model Cancion {
+  Id                     Int     @id @default(autoincrement())
+  Nombre                 String
+  Duracion               Int
+  NumReproducciones      Int     @default(0)
+  NumFavoritos           Int     @default(0)
+  Portada                String
+  autores                AutorCancion[]
+  generos                GeneroCancion[]
+  listas                 PosicionCancion[]
+  cancionesGuardadas     CancionGuardada[]
+  cancionesEscuchadas    CancionEscuchada[]
+}
+
+model Genero {
+  NombreGenero           String  @id
+  canciones              GeneroCancion[]
+  preferencias           Preferencia[]
+}
+
+model GeneroCancion {
+  NombreGenero           String
+  IdCancion              Int
+  genero                 Genero  @relation(fields: [NombreGenero], references: [NombreGenero])
+  cancion                Cancion @relation(fields: [IdCancion], references: [Id])
+  @@id([NombreGenero, IdCancion])
+}
+
+model Lista {
+  Id                     Int      @id @default(autoincrement())
+  Nombre                 String
+  NumCanciones           Int      @default(0)
+  Duracion               Int      @default(0)
+  NumLikes               Int      @default(0)
+  Descripcion            String
+  Portada                String
+
+  posiciones             PosicionCancion[]
+  //Relaccion 1 a 1 con Album y ListaReproduccion
+  album             Album?
+  listaReproduccion ListaReproduccion?
+}
+
+model ListaReproduccion {
+  Id                     Int      @id @unique
+  Nombre                 String
+  EsPrivada              String  @default("false")
+  EmailAutor             String
+
+  autor                  Usuario @relation(fields: [EmailAutor], references: [Email])
+  lista                  Lista   @relation(fields: [Id], references: [Id], onDelete: Cascade)
+}
+
+model CancionGuardada {
+  EmailUsuario           String
+  IdCancion              Int
+  FechaGuardado          DateTime @default(now())
+
+  usuario                Usuario  @relation(fields: [EmailUsuario], references: [Email])
+  cancion                Cancion  @relation(fields: [IdCancion], references: [Id])
+  @@id([EmailUsuario, IdCancion])
+}
+
+model CancionEscuchada {
+  EmailUsuario           String
+  IdCancion              Int
+  NumReproducciones      Int @default(0)
+
+  usuario                Usuario  @relation(fields: [EmailUsuario], references: [Email])
+  cancion                Cancion  @relation(fields: [IdCancion], references: [Id])
+  @@id([EmailUsuario, IdCancion])
+}
+
+model AutorAlbum {
+  IdAlbum               Int
+  NombreArtista         String
+
+  album                 Album   @relation(fields: [IdAlbum], references: [Id])
+  artista               Artista @relation(fields: [NombreArtista], references: [Nombre])
+  @@id([IdAlbum, NombreArtista])
+}
+
+model AutorCancion {
+  IdCancion             Int
+  NombreArtista         String
+
+  cancion               Cancion @relation(fields: [IdCancion], references: [Id])
+  artista               Artista @relation(fields: [NombreArtista], references: [Nombre])
+  @@id([IdCancion, NombreArtista])
+}
+
+model Mensaje {
+  EmailSender           String
+  EmailReceiver         String
+  Mensaje               String
+  Fecha                 DateTime @default(now())
+
+  sender                Usuario  @relation("MensajesEnviados", fields: [EmailSender], references: [Email])
+  receiver              Usuario  @relation("MensajesRecibidos", fields: [EmailReceiver], references: [Email])
+  @@id([EmailSender, EmailReceiver, Fecha])
+}
+
+model Amistad {
+  EmailFriendSender    String
+  EmailFriendReceiver   String
+  FechaComienzoAmistad  DateTime  @default(now())
+
+  sender                Usuario  @relation("AmistadesEnviadas", fields: [EmailFriendSender], references: [Email])
+  receiver              Usuario  @relation("AmistadesRecibidas", fields: [EmailFriendReceiver], references: [Email])
+  @@id([EmailFriendSender, EmailFriendReceiver])
+}
+
+model Preferencia {
+  NombreGenero          String
+  Email                 String
+
+  genero               Genero   @relation(fields: [NombreGenero], references: [NombreGenero])
+  usuario              Usuario  @relation(fields: [Email], references: [Email])
+  @@id([NombreGenero, Email])
+}
+
+model PosicionCancion {
+  IdLista              Int
+  IdCancion            Int
+  Posicion             Int
+
+  lista               Lista   @relation(fields: [IdLista], references: [Id])
+  cancion             Cancion @relation(fields: [IdCancion], references: [Id])
+  @@id([IdLista, IdCancion])
 }
 
 
