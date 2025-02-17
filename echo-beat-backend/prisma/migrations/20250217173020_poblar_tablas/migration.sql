@@ -35,7 +35,7 @@ CREATE TABLE "Album" (
 CREATE TABLE "Cancion" (
     "Id" SERIAL NOT NULL,
     "Nombre" TEXT NOT NULL,
-    "Duracion" INTEGER NOT NULL,
+    "Duracion" TEXT NOT NULL,
     "NumReproducciones" INTEGER NOT NULL DEFAULT 0,
     "NumFavoritos" INTEGER NOT NULL DEFAULT 0,
     "Portada" TEXT NOT NULL,
@@ -63,7 +63,7 @@ CREATE TABLE "Lista" (
     "Id" SERIAL NOT NULL,
     "Nombre" TEXT NOT NULL,
     "NumCanciones" INTEGER NOT NULL DEFAULT 0,
-    "Duracion" INTEGER NOT NULL DEFAULT 0,
+    "Duracion" TEXT NOT NULL DEFAULT '0',
     "NumLikes" INTEGER NOT NULL DEFAULT 0,
     "Descripcion" TEXT NOT NULL,
     "Portada" TEXT NOT NULL,
