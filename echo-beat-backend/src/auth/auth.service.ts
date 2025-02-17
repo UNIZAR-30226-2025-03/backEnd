@@ -3,46 +3,46 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
 
-type AuthInput = { username: string; password: string };
-type SignInData = { username: string };
-type AuthResult = { accessToken: string; username: string };
+type AuthInput = { Email: string; Password: string };
+type SignInData = { Email: string };
+type AuthResult = { accessToken: string; Email: string };
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsersService, // Servicio de usuarios para interactuar con la BD
+    private usersService: UsersService, // Servicio de Usuarios para interactuar con la BD
     private jwtService: JwtService, // Servicio JWT para firmar tokens
   ) {}
 
   // Método principal para autenticar
   async authenticate(input: AuthInput): Promise<AuthResult> {
-    const user = await this.validateUser(input); // Valida usuario
-    if (!user) {
+    const Usuario = await this.validateUser(input); // Valida Usuario
+    if (!Usuario) {
       throw new UnauthorizedException('Invalid credentials'); // Lanza excepción si no es válido
     }
 
-    return this.signIn(user); // Devuelve el token firmado
+    return this.signIn(Usuario); // Devuelve el token firmado
   }
 
-  // Valida las credenciales del usuario
+  // Valida las credenciales del Usuario
   async validateUser(input: AuthInput): Promise<SignInData | null> {
-    const user = await this.usersService.findUserByUsername(input.username); // Busca usuario por nombre
-    if (user && (await bcrypt.compare(input.password, user.password))) {
+    const Usuario = await this.usersService.findUserByEmail(input.Email); // Busca Usuario por nombre
+    if (Usuario && (await bcrypt.compare(input.Password, Usuario.Password))) {
       // Compara la contraseña cifrada
       return {
-        username: user.username,
+        Email: Usuario.Email,
       };
     }
     return null; // Devuelve null si las credenciales no coinciden
   }
 
   // Firma el token JWT
-  async signIn(user: SignInData): Promise<AuthResult> {
+  async signIn(Usuario: SignInData): Promise<AuthResult> {
     const tokenPayload = {
-      username: user.username,
+      Email: Usuario.Email,
     };
 
     const accessToken = await this.jwtService.signAsync(tokenPayload); // Firma el token JWT
-    return { accessToken, username: user.username }; // Devuelve el token y los datos del usuario
+    return { accessToken, Email: Usuario.Email }; // Devuelve el token y los datos del Usuario
   }
 }

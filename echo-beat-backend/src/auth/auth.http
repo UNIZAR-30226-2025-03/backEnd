@@ -2,11 +2,11 @@ POST http://localhost:3000/auth/login
 content-type: application/json
 
 {
-    "username": "test",
-    "password": "123456"
+    "Email": "1@gmail.com",
+    "Password": "123456"
 }
 
 ###
 
 GET http://localhost:3000/auth/me
-authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRlc3QiLCJpYXQiOjE3Mzk0NzQyNzgsImV4cCI6MTczOTU2MDY3OH0.R3mL3E4oIEZi6L8ppdU4hAAEr-8WlD0P5LrgGB7fxvA
+authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJFbWFpbCI6IjFAZ21haWwuY29tIiwiaWF0IjoxNzM5ODExNDA3LCJleHAiOjE3Mzk4OTc4MDd9.7tuFcJCASgE5xT_CrlEQjmOh9ombHhRBDTfCgCdcMcY

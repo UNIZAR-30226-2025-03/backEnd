@@ -16,10 +16,6 @@ generator client {
 }
 
 
-// model User {
-//   username String  @id               // Clave primaria basada en el username
-//   password String                     // Contraseña
-// }
 
 model Usuario {
   Email                   String    @id
@@ -49,7 +45,7 @@ model Artista {
   canciones              AutorCancion[]
 }
 
-model Album {
+model Album { 
   Id                     Int      @id @unique
   NumReproducciones      Int      @default(0)
   FechaLanzamiento       DateTime @default(now())
