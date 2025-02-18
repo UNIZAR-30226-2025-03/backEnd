@@ -192,9 +192,9 @@ def actualizar_listas():
             listas = cursor.fetchall()
 
             for lista_id, lista_nombre in listas:
-                # Contar el número de canciones en la lista
+                # Contar el número de canciones en la lista, quitar el ::INTEGER cuando se haya hecho la nueva migracion
                 cursor.execute("""
-                    SELECT COUNT(*), SUM(c.\"Duracion\"::INTEGER)
+                    SELECT COUNT(*), SUM(c.\"Duracion\"::INTEGER)   
                     FROM \"PosicionCancion\" pc
                     JOIN \"Cancion\" c ON pc.\"IdCancion\" = c.\"Id\"
                     WHERE pc.\"IdLista\" = %s
