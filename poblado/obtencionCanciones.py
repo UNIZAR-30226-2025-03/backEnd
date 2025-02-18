@@ -1,12 +1,12 @@
 import requests
 from subirCancionesAlContainer import subir_a_azure
-from subirMetadatos import insertar_metadata, verificar_autores_de_todos_los_albumes
+from subirMetadatos import insertar_metadata, verificar_autores_de_todos_los_albumes, actualizar_listas
 
 # Tu Client ID de Jamendo
 CLIENT_ID = "4ca1da2f"
 
 # URL de la API para obtener 1 canciones libres de copyright
-URL = f"https://api.jamendo.com/v3.0/tracks/?client_id={CLIENT_ID}&format=json&limit=4&license=ccplus"
+URL = f"https://api.jamendo.com/v3.0/tracks/?client_id={CLIENT_ID}&format=json&limit=10&license=ccplus"
 
 # Hacer la petición a la API de Jamendo
 response = requests.get(URL)
@@ -33,6 +33,7 @@ if response.status_code == 200:
             print(f"   🔗 Descargar: {audio_url}")
             print(f"   📜 Licencia: {licencia}")
             print(f"   📅 Publicado en: {fecha_publicacion}")
+            print(f"   🎶 Géneros: {', '.join(generos)}")
             print("-" * 50)  # Separador entre canciones
 
             #🔹 Subir canción a Azure Blob Storage
@@ -45,6 +46,9 @@ if response.status_code == 200:
         print("🔍 Verificando autores de todos los álbumes...")
         verificar_autores_de_todos_los_albumes()
         print("✅ Verificación de autores completada.")
+        print("🔄 Actualizando listas...")
+        actualizar_listas()
+        print("✅ Duracion y numCanciones de las listas actualizadas.")
     else:
         print("No se encontraron canciones.")
 else:

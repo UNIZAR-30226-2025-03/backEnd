@@ -32,7 +32,7 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
     try:
         with get_db_connection() as conn, conn.cursor() as cursor:
 
-            # 🔹 Verificar e insertar cada artista
+            # Verificar e insertar cada artista
             for artista in artistas:
                 cursor.execute("SELECT \"Nombre\" FROM \"Artista\" WHERE \"Nombre\" = %s", (artista,))
                 artista_existe = cursor.fetchone()
@@ -40,7 +40,8 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
                     cursor.execute("INSERT INTO \"Artista\" (\"Nombre\", \"Biografia\", \"FotoPerfil\") VALUES (%s, %s, %s)", 
                                 (artista, 'Biografía no disponible', 'URL_por_defecto'))
 
-            # 🔹 Verificar si el álbum ya existe
+
+            # Verificar si el álbum ya existe
             cursor.execute("SELECT \"Nombre\" FROM \"Lista\" WHERE \"Nombre\" = %s AND \"Id\" IN (SELECT \"Id\" FROM \"Album\")", (album,))
             album_existe = cursor.fetchone()
 
@@ -74,6 +75,7 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
                 """, (album,))  # 🔹 Aquí `album` es el nombre del álbum
                 num_canciones_album = cursor.fetchone()[0]
 
+
             # Insertar la canción
             cursor.execute("""
                 INSERT INTO \"Cancion\" (\"Nombre\", \"Duracion\", \"NumReproducciones\", \"NumFavoritos\", \"Portada\") 
@@ -83,7 +85,7 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
             cancion_id = cursor.fetchone()[0]
 
 
-            # 🔹 Obtener el ID del álbum en la tabla Lista basado en su nombre
+            # Obtener el ID del álbum en la tabla Lista basado en su nombre
             cursor.execute("""
                 SELECT \"Id\" FROM \"Lista\" WHERE \"Nombre\" = %s AND \"Id\" IN (SELECT \"Id\" FROM \"Album\")
             """, (album,))
@@ -92,21 +94,24 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
             if album_row is None:
                 raise Exception(f"❌ ERROR: No se encontró un álbum con nombre '{album}' en la tabla Lista.")
 
-            album_id = album_row[0]  # ✅ Ahora tenemos el ID real del álbum
-            print(f"✅ Álbum insertado correctamente con ID: {album_id}")
+            album_id = album_row[0]  #  ID real del álbum
+            print(f"Id del album =: {album_id}")
 
-            # 🔹 Insertar la posición de la canción en el álbum
+
+            # Insertar la posición de la canción en el álbum
             posicion_cancion = num_canciones_album + 1
             cursor.execute("""
                 INSERT INTO \"PosicionCancion\" (\"IdLista\", \"IdCancion\", \"Posicion\") 
                 VALUES (%s, %s, %s)
-            """, (album_id, cancion_id, posicion_cancion))  # ✅ Se usa album_id en lugar de album (nombre)
+            """, (album_id, cancion_id, posicion_cancion))  
 
-            # 🔹 Relacionar canción con cada artista
+
+            # Relacionar canción con cada artista
             for artista in artistas:
                 cursor.execute("INSERT INTO \"AutorCancion\" (\"IdCancion\", \"NombreArtista\") VALUES (%s, %s)", 
                             (cancion_id, artista))
             
+
             # Insertar géneros y relacionarlos con la canción
             for genero in generos:
                 # Verificar si el género ya existe
@@ -129,12 +134,12 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
         cursor.close()
         conn.close()
 
-# 🔹 Función para verificar todos los álbumes al final y asignar el autor si es posible
+# Función para verificar todos los álbumes al final y asignar el autor si es posible, sera posible cuando un autor aparezca en todas las canciones de un album
 def verificar_autores_de_todos_los_albumes():
     try:
         with get_db_connection() as conn, conn.cursor() as cursor:
 
-            # 🔹 Obtener todos los álbumes en la base de datos
+            # Obtener todos los álbumes en la base de datos
             cursor.execute("SELECT \"Id\" FROM \"Album\"")
             albumes = cursor.fetchall()
 
@@ -172,6 +177,44 @@ def verificar_autores_de_todos_los_albumes():
 
     except Exception as e:
         print(f"❌ Error al verificar autores de álbumes: {str(e)}")
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# Función para actualizar el número de canciones y la duración total de cada lista
+def actualizar_listas():
+    try:
+        with get_db_connection() as conn, conn.cursor() as cursor:
+            # Obtener todas las listas
+            cursor.execute("SELECT \"Id\", \"Nombre\" FROM \"Lista\"")
+            listas = cursor.fetchall()
+
+            for lista_id, lista_nombre in listas:
+                # Contar el número de canciones en la lista
+                cursor.execute("""
+                    SELECT COUNT(*), SUM(c.\"Duracion\"::INTEGER)
+                    FROM \"PosicionCancion\" pc
+                    JOIN \"Cancion\" c ON pc.\"IdCancion\" = c.\"Id\"
+                    WHERE pc.\"IdLista\" = %s
+                """, (lista_id,))
+                
+                num_canciones, duracion_total = cursor.fetchone()
+
+                # Actualizar la tabla Lista con los nuevos valores
+                cursor.execute("""
+                    UPDATE \"Lista\"
+                    SET \"NumCanciones\" = %s, \"Duracion\" = %s
+                    WHERE \"Id\" = %s
+                """, (num_canciones, duracion_total, lista_id))
+
+                print(f"✅ Lista '{lista_nombre}' actualizada - NumCanciones: {num_canciones}, Duracion: {duracion_total}")
+
+            conn.commit()
+
+    except Exception as e:
+        print(f"Error al actualizar listas: {str(e)}")
 
     finally:
         cursor.close()
