@@ -6,7 +6,7 @@ from subirMetadatos import insertar_metadata, verificar_autores_de_todos_los_alb
 CLIENT_ID = "4ca1da2f"
 
 # URL de la API para obtener 1 canciones libres de copyright
-URL = f"https://api.jamendo.com/v3.0/tracks/?client_id={CLIENT_ID}&format=json&limit=10&license=ccplus"
+URL = f"https://api.jamendo.com/v3.0/tracks/?client_id={CLIENT_ID}&format=json&limit=50&license=ccplus"
 
 # Hacer la petición a la API de Jamendo
 response = requests.get(URL)
