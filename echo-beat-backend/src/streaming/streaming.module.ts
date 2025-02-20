@@ -3,6 +3,7 @@ import { StreamingService } from './streaming.service';
 import { StreamingGateway } from './streaming.gateway';
 
 @Module({
-  providers: [StreamingService, StreamingGateway]
+  providers: [StreamingService, StreamingGateway],
+  exports: [StreamingService],
 })
 export class StreamingModule {}
