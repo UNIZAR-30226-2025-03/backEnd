@@ -10,11 +10,13 @@ import { StreamingModule } from './streaming/streaming.module';
 import { SearchModule } from './search/search.module';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
+import { AzureBlobModule } from './azure-blob/azure-blob.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true, // Hace que las variables de entorno estén disponibles globalmente
-  }),AuthModule, UsersModule, PlaylistsModule, StreamingModule, SearchModule, PrismaModule],
+    envFilePath: '.env',
+  }),AuthModule, UsersModule, PlaylistsModule, StreamingModule, SearchModule, PrismaModule, AzureBlobModule],
   controllers: [AppController],
   providers: [AppService, ChatGateway, PrismaService],
 })
