@@ -18,9 +18,9 @@ generator client {
 
 
 model Usuario {
-  Email                   String    @id
+  Email                   String @id
   Password                String
-  Edad                    Int?
+  FechaNacimiento         DateTime 
   Nick                    String @unique  
   LinkFoto                String?
   BooleanPrivacidad       String @default("false")
@@ -29,6 +29,8 @@ model Usuario {
   listas                  ListaReproduccion[]
   cancionesGuardadas      CancionGuardada[]
   cancionesEscuchadas     CancionEscuchada[]
+  cancionesEscuchando     CancionEscuchando[]
+  tipoReproduccionActual  tipoReproduccionActual[]
   mensajesEnviados        Mensaje[] @relation("MensajesEnviados")
   mensajesRecibidos       Mensaje[] @relation("MensajesRecibidos")
   preferencias            Preferencia[]
@@ -39,7 +41,7 @@ model Usuario {
 model Artista {
   Nombre                 String  @id
   Biografia              String
-  NumOyentesMensuales    Int    @default(0)
+  NumOyentesTotales      Int    @default(0)
   FotoPerfil             String
   albums                 AutorAlbum[]
   canciones              AutorCancion[]
@@ -66,6 +68,7 @@ model Cancion {
   listas                 PosicionCancion[]
   cancionesGuardadas     CancionGuardada[]
   cancionesEscuchadas    CancionEscuchada[]
+  cancionEscuchando      CancionEscuchando[]
 }
 
 model Genero {
@@ -92,6 +95,7 @@ model Lista {
   Portada                String
 
   posiciones             PosicionCancion[]
+  tipoReproduccionActual tipoReproduccionActual[]
   //Relaccion 1 a 1 con Album y ListaReproduccion
   album             Album?
   listaReproduccion ListaReproduccion?
@@ -102,6 +106,7 @@ model ListaReproduccion {
   Nombre                 String
   EsPrivada              String  @default("false")
   EmailAutor             String
+  Genero                 String  @default("Sin genero")
 
   autor                  Usuario @relation(fields: [EmailAutor], references: [Email])
   lista                  Lista   @relation(fields: [Id], references: [Id], onDelete: Cascade)
@@ -125,6 +130,26 @@ model CancionEscuchada {
   usuario                Usuario  @relation(fields: [EmailUsuario], references: [Email])
   cancion                Cancion  @relation(fields: [IdCancion], references: [Id])
   @@id([EmailUsuario, IdCancion])
+}
+
+model CancionEscuchando {
+  EmailUsuario           String
+  IdCancion              Int
+  MinutoEscucha          Int
+
+  usuario                Usuario  @relation(fields: [EmailUsuario], references: [Email])
+  cancion                Cancion  @relation(fields: [IdCancion], references: [Id])
+  @@id([EmailUsuario, IdCancion])
+}
+
+model tipoReproduccionActual {
+  EmailUsuario              String
+  IdLista                   Int
+  HayReproduccionAleatoria  Boolean @default(false)
+
+  usuario                Usuario  @relation(fields: [EmailUsuario], references: [Email])
+  cancion                Lista  @relation(fields: [IdLista], references: [Id])
+  @@id([EmailUsuario, IdLista])
 }
 
 model AutorAlbum {
