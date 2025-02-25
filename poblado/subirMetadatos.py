@@ -3,31 +3,30 @@ import urllib.parse
 import psycopg2
 from dotenv import load_dotenv
 
-# 🔹 Cargar variables de entorno
+# Cargar variables de entorno
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "echo-beat-backend", ".env"))
-print(f"📂 Buscando .env en: {env_path}")
 load_dotenv(env_path)
 
-# 🔹 Obtener la URL de conexión y codificar correctamente los caracteres especiales
+# Obtener la URL de conexión y codificar correctamente los caracteres especiales
 database_url = os.getenv("DATABASE_URL")
 
 if not database_url:
-    print("❌ Error: No se encontró DATABASE_URL en el archivo .env")
+    print("Error: No se encontró DATABASE_URL en el archivo .env")
     exit()
 
-# 🔹 Codificar correctamente la contraseña si es necesario
+# Codificar correctamente la contraseña si es necesario
 parsed_url = urllib.parse.urlparse(database_url)
 password = urllib.parse.quote(parsed_url.password) if parsed_url.password else ""
 database_url_fixed = database_url.replace(parsed_url.password, password) if password else database_url
 
-# 🔹 Conectar a la base de datos
+# Conectar a la base de datos
 def get_db_connection():
     conn = psycopg2.connect(database_url_fixed)
-    conn.cursor().execute("SET search_path TO public;")  # 🔹 Asegura que usa el esquema correcto
+    conn.cursor().execute("SET search_path TO public;") 
     return conn
 
 
-# 🔹 Función para insertar metadata en PostgreSQL
+# Función para insertar metadatos en PostgreSQL
 def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fecha_publicacion, generos):
     try:
         with get_db_connection() as conn, conn.cursor() as cursor:
@@ -54,13 +53,13 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
                 album_row = cursor.fetchone()
 
                 if album_row is None:
-                    raise Exception("❌ ERROR: `RETURNING Id` devolvió None. La inserción puede haber fallado.")
+                    raise Exception("ERROR: `RETURNING Id` devolvió None. La inserción puede haber fallado.")
 
                 album_id = album_row[0]
                 print(f"✅ Álbum insertado correctamente con ID: {album_id}")
 
 
-                # 🔹 Si el álbum no existe, crearlo en `Album`
+                # Si el álbum no existe, crearlo en `Album`
                 cursor.execute("""
                     INSERT INTO \"Album\" (\"Id\", \"FechaLanzamiento\") 
                     VALUES (%s, %s)
@@ -92,7 +91,7 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
             album_row = cursor.fetchone()
 
             if album_row is None:
-                raise Exception(f"❌ ERROR: No se encontró un álbum con nombre '{album}' en la tabla Lista.")
+                raise Exception(f"ERROR: No se encontró un álbum con nombre '{album}' en la tabla Lista.")
 
             album_id = album_row[0]  #  ID real del álbum
             print(f"Id del album =: {album_id}")
@@ -128,7 +127,7 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
             print(f"✅ Metadata insertada en PostgreSQL: {nombre}")
 
     except Exception as e:
-        print(f"❌ Error al insertar en PostgreSQL: {str(e)}")
+        print(f"Error al insertar en PostgreSQL: {str(e)}")
 
     finally:
         cursor.close()
@@ -176,7 +175,7 @@ def verificar_autores_de_todos_los_albumes():
                 print(f"⚠️ No hay un único artista en todas las canciones del álbum {album_id}, no se asigna autor.")
 
     except Exception as e:
-        print(f"❌ Error al verificar autores de álbumes: {str(e)}")
+        print(f"Error al verificar autores de álbumes: {str(e)}")
 
     finally:
         cursor.close()
@@ -219,3 +218,31 @@ def actualizar_listas():
     finally:
         cursor.close()
         conn.close()
+
+GENEROS_FIJOS = [
+    "Rock", "Pop", "Jazz", "Blues", "Hip-Hop", 
+    "Reggaeton", "Salsa", "Merengue", "Cumbia", "Electrónica",
+    "Country", "Folk", "Metal", "Funk", "Clásica"
+]
+
+def insertar_generos_aleatorios():
+    try:
+        with get_db_connection() as conn, conn.cursor() as cursor:
+            # Obtener todas las listas
+            cursor.execute("SELECT \"Id\", \"Nombre\" FROM \"Lista\"")
+            listas = cursor.fetchall()
+            
+            for genero in GENEROS_FIJOS:
+                # Verificar si el género ya existe
+                cursor.execute("SELECT \"NombreGenero\" FROM \"Genero\" WHERE \"NombreGenero\" = %s", (genero,))
+                if not cursor.fetchone():
+                    cursor.execute("INSERT INTO \"Genero\" (\"NombreGenero\") VALUES (%s)", (genero,))
+            
+            conn.commit()
+            print(f"✅ Se insertaron 15 géneros en la tabla Genero.")
+    
+    except Exception as e:
+        print(f"Error al insertar géneros: {str(e)}")
+    finally:
+        cursor.close()
+        conn.close()    

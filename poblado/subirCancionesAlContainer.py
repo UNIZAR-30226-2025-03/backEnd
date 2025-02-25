@@ -3,16 +3,13 @@ import requests
 import os
 from dotenv import load_dotenv
 
-# 🔹 Obtener la ruta correcta del archivo .env
+# Obtener la ruta correcta del archivo .env
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "echo-beat-backend", ".env"))
 
-# 🔹 Imprimir la ruta para confirmar que es la correcta
-print(f"📂 Buscando .env en: {env_path}")
-
-# 🔹 Cargar el archivo .env desde la ubicación correcta
+# Cargar el archivo .env desde la ubicación correcta
 load_dotenv(env_path)
 
-# 🔹 Configuración de Azure Blob Storage
+# Configuración de Azure Blob Storage
 AZURE_CONNECTION_STRING = os.getenv("AZURE_CONNECTION_STRING")
 CONTAINER_NAME = "cancionespsoft"
 
@@ -33,10 +30,3 @@ def subir_a_azure(nombre_archivo, url_audio):
     else:
         print(f"❌ Error al descargar {nombre_archivo}")
         return None
-
-
-#Reproducir la cancion desde azure
-#<audio controls>
-#  <source src="https://misongsstorage.blob.core.windows.net/canciones/cancion_prueba.mp3" type="audio/mpeg">
-#  Tu navegador no soporta el elemento de audio.
-#</audio>

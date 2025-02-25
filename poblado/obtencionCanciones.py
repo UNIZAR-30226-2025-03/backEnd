@@ -1,11 +1,11 @@
 import requests
 from subirCancionesAlContainer import subir_a_azure
-from subirMetadatos import insertar_metadata, verificar_autores_de_todos_los_albumes, actualizar_listas
+from subirMetadatos import insertar_metadata, verificar_autores_de_todos_los_albumes, actualizar_listas, insertar_generos_aleatorios
 
-# Tu Client ID de Jamendo
+# Client ID de Jamendo
 CLIENT_ID = "4ca1da2f"
 
-# URL de la API para obtener 1 canciones libres de copyright
+# URL de la API para obtener 50 canciones libres de copyright
 URL = f"https://api.jamendo.com/v3.0/tracks/?client_id={CLIENT_ID}&format=json&limit=50&license=ccplus"
 
 # Hacer la petición a la API de Jamendo
@@ -49,6 +49,8 @@ if response.status_code == 200:
         print("🔄 Actualizando listas...")
         actualizar_listas()
         print("✅ Duracion y numCanciones de las listas actualizadas.")
+        insertar_generos_aleatorios()
+        print("✅ Generos insertados.")
     else:
         print("No se encontraron canciones.")
 else:
