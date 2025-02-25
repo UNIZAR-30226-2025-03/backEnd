@@ -2,7 +2,7 @@
 CREATE TABLE "Usuario" (
     "Email" TEXT NOT NULL,
     "Password" TEXT NOT NULL,
-    "Edad" INTEGER,
+    "FechaNacimiento" TIMESTAMP(3) NOT NULL,
     "Nick" TEXT NOT NULL,
     "LinkFoto" TEXT,
     "BooleanPrivacidad" TEXT NOT NULL DEFAULT 'false',
@@ -16,7 +16,7 @@ CREATE TABLE "Usuario" (
 CREATE TABLE "Artista" (
     "Nombre" TEXT NOT NULL,
     "Biografia" TEXT NOT NULL,
-    "NumOyentesMensuales" INTEGER NOT NULL DEFAULT 0,
+    "NumOyentesTotales" INTEGER NOT NULL DEFAULT 0,
     "FotoPerfil" TEXT NOT NULL,
 
     CONSTRAINT "Artista_pkey" PRIMARY KEY ("Nombre")
@@ -77,6 +77,7 @@ CREATE TABLE "ListaReproduccion" (
     "Nombre" TEXT NOT NULL,
     "EsPrivada" TEXT NOT NULL DEFAULT 'false',
     "EmailAutor" TEXT NOT NULL,
+    "Genero" TEXT NOT NULL DEFAULT 'Sin genero',
 
     CONSTRAINT "ListaReproduccion_pkey" PRIMARY KEY ("Id")
 );
@@ -97,6 +98,24 @@ CREATE TABLE "CancionEscuchada" (
     "NumReproducciones" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "CancionEscuchada_pkey" PRIMARY KEY ("EmailUsuario","IdCancion")
+);
+
+-- CreateTable
+CREATE TABLE "CancionEscuchando" (
+    "EmailUsuario" TEXT NOT NULL,
+    "IdCancion" INTEGER NOT NULL,
+    "MinutoEscucha" INTEGER NOT NULL,
+
+    CONSTRAINT "CancionEscuchando_pkey" PRIMARY KEY ("EmailUsuario","IdCancion")
+);
+
+-- CreateTable
+CREATE TABLE "tipoReproduccionActual" (
+    "EmailUsuario" TEXT NOT NULL,
+    "IdLista" INTEGER NOT NULL,
+    "HayReproduccionAleatoria" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "tipoReproduccionActual_pkey" PRIMARY KEY ("EmailUsuario","IdLista")
 );
 
 -- CreateTable
@@ -186,6 +205,18 @@ ALTER TABLE "CancionEscuchada" ADD CONSTRAINT "CancionEscuchada_EmailUsuario_fke
 
 -- AddForeignKey
 ALTER TABLE "CancionEscuchada" ADD CONSTRAINT "CancionEscuchada_IdCancion_fkey" FOREIGN KEY ("IdCancion") REFERENCES "Cancion"("Id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CancionEscuchando" ADD CONSTRAINT "CancionEscuchando_EmailUsuario_fkey" FOREIGN KEY ("EmailUsuario") REFERENCES "Usuario"("Email") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CancionEscuchando" ADD CONSTRAINT "CancionEscuchando_IdCancion_fkey" FOREIGN KEY ("IdCancion") REFERENCES "Cancion"("Id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tipoReproduccionActual" ADD CONSTRAINT "tipoReproduccionActual_EmailUsuario_fkey" FOREIGN KEY ("EmailUsuario") REFERENCES "Usuario"("Email") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tipoReproduccionActual" ADD CONSTRAINT "tipoReproduccionActual_IdLista_fkey" FOREIGN KEY ("IdLista") REFERENCES "Lista"("Id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AutorAlbum" ADD CONSTRAINT "AutorAlbum_IdAlbum_fkey" FOREIGN KEY ("IdAlbum") REFERENCES "Album"("Id") ON DELETE RESTRICT ON UPDATE CASCADE;

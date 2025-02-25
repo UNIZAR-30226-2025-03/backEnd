@@ -80,6 +80,7 @@ model Genero {
 model GeneroCancion {
   NombreGenero           String
   IdCancion              Int
+  
   genero                 Genero  @relation(fields: [NombreGenero], references: [NombreGenero])
   cancion                Cancion @relation(fields: [IdCancion], references: [Id])
   @@id([NombreGenero, IdCancion])
