@@ -23,10 +23,10 @@ export class PlaylistsController {
     return { message: 'Playlist eliminada correctamente.' };
   }
 
-  @ApiOperation({ summary: 'Obtiene todas las playlists de un usuario' })
+  @ApiOperation({ summary: 'Obtiene todas las playlists creadas por un usuario' })
   @ApiResponse({ status: 200, description: 'Retorna un arreglo de playlists.' })
-  @Get('user/:userId')
-  async getPlaylistsByUser(@Param('userId') userId: string) {
-    return await this.playlistsService.findAllByUser(userId);
+  @Get('user')
+  async getPlaylistsByUser(@Param('userEmail') userEmail: string) {
+    return await this.playlistsService.findAllByUser(userEmail);
   }
 }

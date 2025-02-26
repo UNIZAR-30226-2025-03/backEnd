@@ -7,7 +7,7 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-
+/*
   async createUser(
     Email: string,
     Password: string,
@@ -48,7 +48,7 @@ export class UsersService {
       throw new Error("No se pudo crear el usuario.");
     }
   }
-  
+*/
   
 
 
@@ -60,4 +60,25 @@ async findUserByEmail(Email: string) {
     });
   }
  
+    // Nuevo método para obtener UltimaCancionEscuchada y UltimaListaEscuchada
+    async getUserLastPlayedData(Email: string) {
+      const user = await this.prisma.usuario.findUnique({
+        where: {
+          Email,
+        },
+        select: {
+          UltimaCancionEscuchada: true,
+          UltimaListaEscuchada: true,
+        },
+      });
+  
+      if (!user) {
+        throw new Error('Usuario no encontrado');
+      }
+  
+      return {
+        UltimaCancionEscuchada: user.UltimaCancionEscuchada,
+        UltimaListaEscuchada: user.UltimaListaEscuchada,
+      };
+    }
 }

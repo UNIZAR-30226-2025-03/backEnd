@@ -112,9 +112,9 @@ export class PlaylistsService {
    * Retorna todas las playlists creadas por el usuario.
    * Incluye la información de la tabla Lista.
    */
-  async findAllByUser(userId: string) {
+  async findAllByUser(userEmail: string) {
     const playlists = await this.prisma.listaReproduccion.findMany({
-      where: { EmailAutor: userId },
+      where: { EmailAutor: userEmail },
       include: {
         lista: true, // Incluye información adicional de la tabla Lista
       },
