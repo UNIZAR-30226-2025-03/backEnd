@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable,ConflictException,InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
@@ -7,53 +7,61 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-/*
-  async createUser(NotFoundException
+
+  async createUser(
     Email: string,
     Password: string,
     Nick: string,
-    Edad?: number,
-    LinkFoto?: string,
-    BooleanPrivacidad?: string,
-    UltimaListaEscuchada?: number,
-    UltimaCancionEscuchada?: number
+    FechaNacimiento: Date,  // ✅ Asegurar que recibe Date
   ) {
     if (!Nick) throw new Error("Nick es obligatorio.");
 
     try {
-      const hashedPassword = await bcrypt.hash(Password, 10); // Cifra la contraseña
-  
+      // 🔹 Verificar si el usuario ya existe (Email o Nick repetido)
+      const existingUser = await this.prisma.usuario.findFirst({
+        where: {
+          OR: [
+            { Email },
+            { Nick }
+          ],
+        },
+      });
+
+      if (existingUser) {
+        throw new ConflictException("El correo o nickname ya están en uso.");
+      }
+
+      // 🔹 Cifrar la contraseña
+      const hashedPassword = await bcrypt.hash(Password, 10);
+
+      // 🔹 Crear el usuario
       const newUser = await this.prisma.usuario.create({
         data: {
           Email,
           Password: hashedPassword,
-          Edad: Edad ?? null, 
-          Nick: Nick ?? null, // Nick es único, Prisma dará error si ya existe
-          LinkFoto: LinkFoto ?? null, 
-          BooleanPrivacidad: BooleanPrivacidad ?? "false", 
-          UltimaListaEscuchada: UltimaListaEscuchada ?? null,
-          UltimaCancionEscuchada: UltimaCancionEscuchada ?? null
+          FechaNacimiento: new Date(),
+          Nick: Nick,
         },
       });
-  
+
       console.log("Usuario creado:", newUser);
       return newUser;
     } catch (error) {
-      // Si es un error de Prisma y es por clave única duplicada
       if (error.code === 'P2002') {
-        throw new Error("El Nick o Email ya están en uso. Intenta con otro.");
+        throw new ConflictException("El Nick o Email ya están en uso. Intenta con otro.");
       }
-  
       console.error("Error al crear usuario:", error);
-      throw new Error("No se pudo crear el usuario.");
+      throw new InternalServerErrorException("No se pudo crear el usuario.");
     }
   }
-*/
+
+
+
   
 
 
 async findUserByEmail(Email: string) {
-    return this.prisma.usuario.findUnique({ //NO VA CON UNIQUE NO SE PORQUE COJONES NO ME LO PILLA COMO PRIMARIO EL USERNAME
+    return this.prisma.usuario.findUnique({ 
       where: {
         Email,
       },
