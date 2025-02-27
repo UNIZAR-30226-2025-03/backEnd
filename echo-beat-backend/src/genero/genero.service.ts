@@ -34,7 +34,7 @@ export class GeneroService {
    * @param nombreGenero Nombre del género a buscar.
    * @returns La URL o ruta de la foto asociada al género.
    */
-  /*
+  
     async getFotoGeneroByNombre(nombreGenero: string): Promise<string> {
         const genero = await this.prisma.genero.findUnique({
           where: { NombreGenero: nombreGenero },
@@ -47,7 +47,7 @@ export class GeneroService {
     
         return genero.FotoGenero; // Retorna la foto del género
       }
-      */
+      
 }
 
 

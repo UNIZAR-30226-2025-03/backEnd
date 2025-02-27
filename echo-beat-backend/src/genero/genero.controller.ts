@@ -30,7 +30,7 @@ export class GeneroController {
    * @param nombreGenero El nombre del género para el que se busca la foto.
    * @returns La foto asociada al género.
    */
-  /*
+  
     @ApiOperation({ summary: 'Obtener la foto de un género por su nombre' })
     @ApiResponse({ status: 200, description: 'Foto del género obtenida correctamente.' })
     @ApiResponse({ status: 404, description: 'No se encontró el género.' })
@@ -38,5 +38,5 @@ export class GeneroController {
     async getFotoGenero(@Query('nombreGenero') nombreGenero: string): Promise<string> {
       return this.generoService.getFotoGeneroByNombre(nombreGenero);
     }
-      */
+      
 }

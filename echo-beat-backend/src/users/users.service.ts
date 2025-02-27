@@ -1,11 +1,11 @@
-import { Injectable,ConflictException,InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
 
   async createUser(
@@ -57,52 +57,37 @@ export class UsersService {
 
 
 
-  
 
 
-async findUserByEmail(Email: string) {
-    return this.prisma.usuario.findUnique({ 
+
+  async findUserByEmail(Email: string) {
+    return this.prisma.usuario.findUnique({
       where: {
         Email,
       },
     });
   }
- 
-    // Nuevo método para obtener UltimaCancionEscuchada y UltimaListaEscuchada
-    async getUserLastPlayedData(Email: string) {
-      const user = await this.prisma.usuario.findUnique({
-        where: {
-          Email,
-        },
-        select: {
-          UltimaCancionEscuchada: true,
-          UltimaListaEscuchada: true,
-        },
-      });
-  
-      if (!user) {
-        throw new Error('Usuario no encontrado');
-      }
-  
-      return {
-        UltimaCancionEscuchada: user.UltimaCancionEscuchada,
-        UltimaListaEscuchada: user.UltimaListaEscuchada,
-      };
+
+  // Nuevo método para obtener UltimaCancionEscuchada y UltimaListaEscuchada
+  async getUserLastPlayedSong(Email: string) {
+    const user = await this.prisma.usuario.findUnique({
+      where: {
+        Email,
+      },
+      select: {
+        UltimaCancionEscuchada: true,
+      },
+    });
+
+    if (!user) {
+      throw new Error('Usuario no encontrado');
     }
 
-    /**
-   * Obtiene el minuto de escucha de una canción para un usuario específico.
-   *
-   * @param EmailUsuario - El correo electrónico del usuario.
-   * @param IdCancion - El ID de la canción.
-   * @returns El minuto en el que el usuario dejó la canción.
-   */
-  async getMinutoEscucha(EmailUsuario: string, IdCancion: number): Promise<number> {
     const registro = await this.prisma.cancionEscuchando.findUnique({
       where: {
         EmailUsuario_IdCancion: {
-          EmailUsuario,
-          IdCancion,
+          EmailUsuario: Email, // Parámetro de entrada
+          IdCancion: user.UltimaCancionEscuchada as number, // Extraído de la consulta anterior
         },
       },
       select: {
@@ -110,9 +95,54 @@ async findUserByEmail(Email: string) {
       },
     });
 
-    if (!registro) {
-      throw new NotFoundException('No se encontró un registro de escucha para esta canción y usuario.');
+    const cancion = await this.prisma.cancion.findUnique({
+      where: {
+        Id: user.UltimaCancionEscuchada as number, // Buscar por el IdCancion obtenido de usuario
+      },
+      select: {
+        Nombre: true,
+        Portada: true,
+      },
+    });
+
+    return {
+      UltimaCancionEscuchada: user.UltimaCancionEscuchada,
+      MinutoEscucha: registro ? registro.MinutoEscucha : null,
+      Nombre: cancion?.Nombre,
+      Portada: cancion?.Portada,
+    };
+  }
+
+  // Nuevo método para obtener UltimaCancionEscuchada y UltimaListaEscuchada
+  async getUserLastPlayedList(Email: string) {
+    const user = await this.prisma.usuario.findUnique({
+      where: {
+        Email,
+      },
+      select: {
+        UltimaListaEscuchada: true,
+      },
+    });
+
+    if (!user) {
+      throw new Error('Usuario no encontrado');
     }
-    return registro.MinutoEscucha;
+
+    const registro = await this.prisma.lista.findUnique({
+      where: {
+        Id: user.UltimaListaEscuchada as number, // Extraído de la consulta anterior
+      },
+      select: {
+        Nombre: true,
+        Portada: true,
+      },
+    });
+
+
+    return {
+      UltimaListaEscuchada: user.UltimaListaEscuchada,
+      Nombre: registro?.Nombre,
+      Portada: registro?.Portada,
+    };
   }
 }
