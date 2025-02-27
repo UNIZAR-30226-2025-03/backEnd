@@ -10,7 +10,7 @@ env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "echo-b
 load_dotenv(env_path)
 
 # Configuración de Azure Blob Storage
-AZURE_CONNECTION_STRING = os.getenv("AZURE_CONNECTION_STRING")
+AZURE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
 CONTAINER_NAME = "cancionespsoft"
 
 # 🔹 Función para subir canción a Azure
