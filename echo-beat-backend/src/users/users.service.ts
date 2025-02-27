@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
@@ -8,7 +8,7 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
 /*
-  async createUser(
+  async createUser(NotFoundException
     Email: string,
     Password: string,
     Nick: string,
@@ -81,4 +81,30 @@ async findUserByEmail(Email: string) {
         UltimaListaEscuchada: user.UltimaListaEscuchada,
       };
     }
+
+    /**
+   * Obtiene el minuto de escucha de una canción para un usuario específico.
+   *
+   * @param EmailUsuario - El correo electrónico del usuario.
+   * @param IdCancion - El ID de la canción.
+   * @returns El minuto en el que el usuario dejó la canción.
+   */
+  async getMinutoEscucha(EmailUsuario: string, IdCancion: number): Promise<number> {
+    const registro = await this.prisma.cancionEscuchando.findUnique({
+      where: {
+        EmailUsuario_IdCancion: {
+          EmailUsuario,
+          IdCancion,
+        },
+      },
+      select: {
+        MinutoEscucha: true,
+      },
+    });
+
+    if (!registro) {
+      throw new NotFoundException('No se encontró un registro de escucha para esta canción y usuario.');
+    }
+    return registro.MinutoEscucha;
+  }
 }
