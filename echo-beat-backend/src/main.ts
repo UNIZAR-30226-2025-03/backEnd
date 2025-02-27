@@ -19,6 +19,11 @@ async function bootstrap() {
   // Habilitar la ruta /api para visualizar la documentación
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(3000);
+  // Usa una variable de entorno para el puerto o el valor por defecto 3000
+  const port = process.env.PORT || 3000;
+  
+  // Escucha en todas las interfaces de red ('0.0.0.0') para exponer el puerto
+  await app.listen(port, '0.0.0.0');
+  console.log(`Servidor corriendo en http://localhost:${port}`);
 }
 bootstrap();

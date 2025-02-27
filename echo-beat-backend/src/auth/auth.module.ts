@@ -4,7 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PrismaService } from 'src/prisma/prisma.service'; // un servicio global para inyectar Prisma
-import { UsersService } from '../users/users.service';
+import { UsersModule } from 'src/users/users.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 
@@ -18,7 +18,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     }),
   }),],
   controllers: [AuthController],
-  providers: [AuthService, PrismaService],
+  providers: [AuthService, PrismaService, JwtModule],
   exports: [AuthService], // si quieres usarlo en otros módulos
 })
 export class AuthModule {}
