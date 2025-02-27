@@ -4,7 +4,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  // Habilita CORS para todas las peticiones
+  app.enableCors();
   // Configuración básica de Swagger
   const config = new DocumentBuilder()
     .setTitle('Echo Beat Backend')
