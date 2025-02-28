@@ -62,6 +62,24 @@ export class UsersService {
       },
     });
   }
+
+  async getUserNick(Email: string) {
+    const user = await this.prisma.usuario.findUnique({
+      where: {
+        Email,
+      },
+      select: {
+        Nick: true,
+      },
+    });
+  
+    if (!user) {
+      throw new Error(`Usuario con email ${Email} no encontrado.`);
+    }
+  
+    return user;
+  }
+
   async updatePassword(Email: string, newPassword: string) {
     return this.prisma.usuario.update({
       where: { Email },

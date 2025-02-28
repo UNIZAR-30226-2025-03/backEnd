@@ -63,4 +63,12 @@ export class UsersController {
   async getUserLastPlayedList(@Query('userEmail') userEmail: string) {
     return this.usersService.getUserLastPlayedList(userEmail);
   }
+
+  @ApiOperation({ summary: 'Obtener de un usuario a partir de su correo' })
+  @ApiResponse({ status: 200, description: 'Datos obtenidos correctamente.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  @Get('nick')
+  async getUserNick(@Query('userEmail') userEmail: string) {
+    return this.usersService.getUserNick(userEmail);
+  }
 }
