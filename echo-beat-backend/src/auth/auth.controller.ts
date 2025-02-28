@@ -2,6 +2,8 @@ import { Controller, Get, Post, HttpCode, HttpStatus, Body, Request, UseGuards }
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './guards/auth.guard';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UsersService } from '../users/users.service';
 
 @ApiTags('Auth')
@@ -27,4 +29,27 @@ export class AuthController {
   getUserInfo(@Request() request) {
     return request.Usuario;
   }
+  
+
+  
+  @ApiOperation({ summary: 'Solicitar restablecimiento de contraseña' })
+  @ApiResponse({ status: 200, description: 'Correo de restablecimiento enviado exitosamente.' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos o usuario no encontrado.' })
+  @ApiBody({ schema: { properties: { Email: { type: 'string' } } } })
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.sendPasswordResetEmail(forgotPasswordDto.Email);
+  }
+
+  @ApiOperation({ summary: 'Restablecer contraseña con token' })
+  @ApiResponse({ status: 200, description: 'Contraseña restablecida exitosamente.' })
+  @ApiResponse({ status: 400, description: 'Token inválido o expirado.' })
+  @ApiBody({ schema: { properties: { Token: { type: 'string' }, NewPassword: { type: 'string' } } } })
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto.Token, resetPasswordDto.NewPassword);
+  }
+
+
+  
 }

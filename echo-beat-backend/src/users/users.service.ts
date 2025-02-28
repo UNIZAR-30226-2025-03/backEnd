@@ -55,16 +55,17 @@ export class UsersService {
     }
   }
 
-
-
-
-
-
   async findUserByEmail(Email: string) {
     return this.prisma.usuario.findUnique({
       where: {
         Email,
       },
+    });
+  }
+  async updatePassword(Email: string, newPassword: string) {
+    return this.prisma.usuario.update({
+      where: { Email },
+      data: { Password: newPassword },
     });
   }
 

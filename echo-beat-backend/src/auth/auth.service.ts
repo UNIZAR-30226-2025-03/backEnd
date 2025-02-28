@@ -1,7 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException,UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
+import * as nodemailer from 'nodemailer';
+
 
 type AuthInput = { Email: string; Password: string };
 type SignInData = { Email: string };
@@ -22,7 +24,7 @@ export class AuthService {
     }
 
     return this.signIn(Usuario); // Devuelve el token firmado
-  }
+  } 
 
   // Valida las credenciales del Usuario
   async validateUser(input: AuthInput): Promise<SignInData | null> {
@@ -45,4 +47,74 @@ export class AuthService {
     const accessToken = await this.jwtService.signAsync(tokenPayload); // Firma el token JWT
     return { accessToken, Email: Usuario.Email }; // Devuelve el token y los datos del Usuario
   }
+
+
+  // Genera y envía el token de recuperación al correo
+  async sendPasswordResetEmail(Email: string) {
+    const user = await this.usersService.findUserByEmail(Email);
+    if (!user) {
+      throw new NotFoundException("Este correo no está registrado.");
+    }
+
+    // Generamos un token de recuperación con JWT
+    const resetToken = this.jwtService.sign(
+      { Email: user.Email },
+      { secret: process.env.JWT_RESET_SECRET, expiresIn: '1h' }
+    );
+
+    // Definir el enlace de restablecimiento
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+    // 🔹 Configurar el transporte de nodemailer
+    const transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // 🔹 Configurar el correo
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: Email,
+      subject: 'Recuperación de Contraseña - GoBeat',
+      html: `
+        <p>Hola,</p>
+        <p>Hemos recibido una solicitud para restablecer tu contraseña.</p>
+        <p>Haz clic en el siguiente enlace para cambiarla:</p>
+        <a href="${resetLink}">Restablecer Contraseña</a>
+        <p>Este enlace expirará en 1 hora.</p>
+      `,
+    };
+
+    // 🔹 Enviar el correo
+    await transporter.sendMail(mailOptions);
+
+    return { message: "Correo de recuperación enviado." };
+  }
+
+  // ✅ 2️⃣ Validar el token y actualizar la contraseña
+  async resetPassword(token: string, newPassword: string) {
+    try {
+      // 🔹 Decodificar el token
+      const decoded = this.jwtService.verify(token, { secret: process.env.JWT_RESET_SECRET });
+
+      const user = await this.usersService.findUserByEmail(decoded.Email);
+      if (!user) {
+        throw new NotFoundException("Usuario no encontrado.");
+      }
+
+      // 🔹 Hashear la nueva contraseña
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // 🔹 Actualizar la contraseña en la BD
+      await this.usersService.updatePassword(user.Email, hashedPassword);
+
+      return { message: "Contraseña actualizada correctamente." };
+    } catch (error) {
+      throw new BadRequestException("Token inválido o expirado.");
+    }
+  }
 }
+
