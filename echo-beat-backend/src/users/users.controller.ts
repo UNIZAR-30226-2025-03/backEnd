@@ -82,6 +82,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Modificar el Nick de un usuario' })
   @ApiResponse({ status: 200, description: 'Datos actualizados correctamente.' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  @ApiResponse({ status: 409, description: 'El Nick ya está en uso.' })
   @Post('change-nick')
   async updateUserNick(@Query('userEmail') userEmail: string,
                         @Query('Nick') Nick: string) {
