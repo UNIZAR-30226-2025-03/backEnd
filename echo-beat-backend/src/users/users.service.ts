@@ -164,4 +164,41 @@ export class UsersService {
       Portada: registro?.Portada,
     };
   }
+
+  async getUser(Email: string) {
+    const user = await this.prisma.usuario.findUnique({
+      where: {
+        Email,
+      },
+    });
+  
+    if (!user) {
+      throw new Error(`Usuario con email ${Email} no encontrado.`);
+    }
+  
+    return user;
+  }
+
+  async updateUserNick(Email: string, Nick: string) {
+    // Verificar si el nuevo Nick ya está en uso
+    const existingUser = await this.prisma.usuario.findUnique({
+      where: { Nick: Nick },
+    });
+  
+    if (existingUser) {
+      throw new ConflictException('El Nick ya está en uso.');
+    }
+  
+    // Actualizar el Nick del usuario
+    const updatedUser = await this.prisma.usuario.update({
+      where: { Email },
+      data: { Nick: Nick },
+    });
+  
+    return {
+      message: 'Nick actualizado correctamente.',
+      newNick: updatedUser.Nick,
+    };
+  }
+  
 }

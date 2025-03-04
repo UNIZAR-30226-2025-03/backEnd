@@ -55,7 +55,6 @@ export class UsersController {
     return this.usersService.getUserLastPlayedSong(userEmail);
   }
 
-
   @ApiOperation({ summary: 'Obtener la última lista/álbum  escuchada por el usuario' })
   @ApiResponse({ status: 200, description: 'Datos obtenidos correctamente.' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
@@ -64,11 +63,28 @@ export class UsersController {
     return this.usersService.getUserLastPlayedList(userEmail);
   }
 
-  @ApiOperation({ summary: 'Obtener de un usuario a partir de su correo' })
+  @ApiOperation({ summary: 'Obtener el nick de un usuario a partir de su correo' })
   @ApiResponse({ status: 200, description: 'Datos obtenidos correctamente.' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
   @Get('nick')
   async getUserNick(@Query('userEmail') userEmail: string) {
     return this.usersService.getUserNick(userEmail);
+  }
+
+  @ApiOperation({ summary: 'Obtener de un usuario sus credenciales' })
+  @ApiResponse({ status: 200, description: 'Datos obtenidos correctamente.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  @Get('get-user')
+  async getUser(@Query('userEmail') userEmail: string) {
+    return this.usersService.getUser(userEmail);
+  }
+
+  @ApiOperation({ summary: 'Modificar el Nick de un usuario' })
+  @ApiResponse({ status: 200, description: 'Datos actualizados correctamente.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  @Post('change-nick')
+  async updateUserNick(@Query('userEmail') userEmail: string,
+                        @Query('Nick') Nick: string) {
+    return this.usersService.updateUserNick(userEmail, Nick);
   }
 }
