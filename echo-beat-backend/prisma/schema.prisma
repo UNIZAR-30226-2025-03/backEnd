@@ -47,15 +47,6 @@ model Artista {
   canciones              AutorCancion[]
 }
 
-model Album { 
-  Id                     Int      @id @unique
-  NumReproducciones      Int      @default(0)
-  FechaLanzamiento       DateTime @default(now())
-
-  lista                  Lista   @relation(fields: [Id], references: [Id], onDelete: Cascade)
-  autores                AutorAlbum[]
-}
-
 model Cancion {
   Id                     Int     @id @default(autoincrement())
   Nombre                 String
@@ -96,12 +87,22 @@ model Lista {
   NumLikes               Int      @default(0)
   Descripcion            String
   Portada                String
+  TipoLista              String   
 
   posiciones             PosicionCancion[]
   tipoReproduccionActual tipoReproduccionActual[]
   //Relaccion 1 a 1 con Album y ListaReproduccion
   album             Album?
   listaReproduccion ListaReproduccion?
+}
+
+model Album { 
+  Id                     Int      @id @unique
+  NumReproducciones      Int      @default(0)
+  FechaLanzamiento       DateTime @default(now())
+
+  lista                  Lista   @relation(fields: [Id], references: [Id], onDelete: Cascade)
+  autores                AutorAlbum[]
 }
 
 model ListaReproduccion {
