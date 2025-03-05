@@ -25,7 +25,7 @@ async function bootstrap() {
   app.enableCors();
 
   // Habilitar la compresión Gzip para todas las respuestas
-  app.use(compression());
+  app.use(compression({ threshold: 0 }));
 
   // Configuración de Swagger (opcional)
   const config = new DocumentBuilder()
