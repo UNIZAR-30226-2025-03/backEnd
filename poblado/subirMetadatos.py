@@ -47,7 +47,7 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
             if not album_existe:
                 cursor.execute("""
                     INSERT INTO \"Lista\" (\"Nombre\", \"NumCanciones\", \"Duracion\", \"NumLikes\", \"Descripcion\", \"Portada\", \"TipoLista\")
-                    VALUES (%s, %s, %s, %s, %s, %s) RETURNING \"Id\"
+                    VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING \"Id\"
                 """, (album, 0, '0', 0, 'Álbum musical', 'URL_por_defecto', 'Album'))
 
                 album_row = cursor.fetchone()
