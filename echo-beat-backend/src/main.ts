@@ -13,8 +13,8 @@ async function bootstrap() {
     const domain = process.env.DUCKDNS_DOMAIN;
     // Configura las opciones HTTPS con los certificados de Let's Encrypt para ese dominio
     const httpsOptions = {
-      key: fs.readFileSync(`/etc/letsencrypt/live/${domain}/privkey.pem`),
-      cert: fs.readFileSync(`/etc/letsencrypt/live/${domain}/fullchain.pem`),
+      key: fs.readFileSync('/home/azureuser/certificates/echobeatapi.duckdns.org/privkey.pem'),
+      cert: fs.readFileSync('/home/azureuser/certificates/echobeatapi.duckdns.org/fullchain.pem'),
     };
 
     app = await NestFactory.create(AppModule, { httpsOptions });
