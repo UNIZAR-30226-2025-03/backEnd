@@ -127,4 +127,34 @@ export class PlaylistsService {
 
     return playlists;
   }
+
+  /**
+   * Obtiene todas las canciones de una lista de reproducción.
+   */
+  async getSongsByPlaylistId(playlistId: string) {
+    const playlist = await this.prisma.lista.findUnique({
+      where: { Id: Number(playlistId) },
+      include: { 
+        posiciones: { 
+          include: { cancion: true } 
+        } 
+      },
+    });
+
+    if (!playlist) {
+      throw new NotFoundException(`No se encontró la playlist con ID ${playlistId}`);
+    }
+
+    // Extraer las canciones de la lista
+    const canciones = playlist.posiciones.map(posicion => ({
+      id: posicion.cancion.Id,
+      nombre: posicion.cancion.Nombre,
+      duracion: posicion.cancion.Duracion,
+      numReproducciones: posicion.cancion.NumReproducciones,
+      numFavoritos: posicion.cancion.NumFavoritos,
+      portada: posicion.cancion.Portada,
+    }));
+
+    return { playlistId, nombreLista: playlist.Nombre, canciones };
+  }
 }

@@ -29,4 +29,12 @@ export class PlaylistsController {
   async getPlaylistsByUser(@Param('userEmail') userEmail: string) {
     return await this.playlistsService.findAllByUser(userEmail);
   }
+
+  @ApiOperation({ summary: 'Obtener todas las canciones de una playlist' })
+  @ApiResponse({ status: 200, description: 'Devuelve todas las canciones de la playlist' })
+  @ApiResponse({ status: 404, description: 'No se encontró la playlist' })
+  @Get(':id/songs')
+  async getSongsByPlaylist(@Param('id') id: string) {
+    return await this.playlistsService.getSongsByPlaylistId(id);
+  }
 }
