@@ -221,8 +221,8 @@ def actualizar_listas():
 
 GENEROS_FIJOS = [
     "Rock", "Pop", "Jazz", "Blues", "Hip-Hop", 
-    "Reggaeton", "Salsa", "Merengue", "Cumbia", "Electrónica",
-    "Country", "Folk", "Metal", "Funk", "Clásica"
+    "Reggaeton", "Salsa", "Electrónica",
+    "Metal", "Clásica"
 ]
 
 def insertar_generos_aleatorios():
@@ -239,7 +239,7 @@ def insertar_generos_aleatorios():
                     cursor.execute("INSERT INTO \"Genero\" (\"NombreGenero\") VALUES (%s)", (genero,))
             
             conn.commit()
-            print(f"✅ Se insertaron 15 géneros en la tabla Genero.")
+            print(f"✅ Se insertaron 10 géneros en la tabla Genero.")
     
     except Exception as e:
         print(f"Error al insertar géneros: {str(e)}")
