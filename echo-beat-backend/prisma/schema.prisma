@@ -19,11 +19,12 @@ generator client {
 
 model Usuario {
   Email                   String @id
+  NombreCompleto          String
   Password                String
   FechaNacimiento         DateTime 
   Nick                    String @unique  
   LinkFoto                String?
-  BooleanPrivacidad       String @default("false")
+  Privacidad              String @default("privado")
   UltimaListaEscuchada    Int?
   UltimaCancionEscuchada  Int?
   listas                  ListaReproduccion[]
