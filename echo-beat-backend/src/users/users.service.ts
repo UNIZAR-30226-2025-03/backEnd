@@ -1,11 +1,23 @@
 import { Injectable, ConflictException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { BlobServiceClient } from '@azure/storage-blob';
 import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) { }
+  private blobServiceClient: BlobServiceClient;
+  private containerName: string;
+  constructor(private readonly prisma: PrismaService) {
+    const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+    this.containerName = 'user-photos';
+    
+    if (!connectionString) {
+      throw new Error('Azure Storage connection string is not defined');
+    }
+    this.blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+  }
 
 
   async createUser(
@@ -199,6 +211,49 @@ export class UsersService {
       message: 'Nick actualizado correctamente.',
       newNick: updatedUser.Nick,
     };
+  }
+
+  async updateUserPhoto(userEmail: string, file: Express.Multer.File) {
+    const user = await this.prisma.usuario.findUnique({
+      where: { Email: userEmail },
+      select: { LinkFoto: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Eliminar la foto anterior si existe
+    if (user.LinkFoto) {
+      const oldPhotoUrl = user.LinkFoto;
+      const oldBlobName = oldPhotoUrl.split('/').pop();
+      if (oldBlobName) {
+        const containerClient = this.blobServiceClient.getContainerClient(this.containerName);
+        const blobClient = containerClient.getBlobClient(oldBlobName);
+        await blobClient.deleteIfExists();
+      }
+    }
+
+    // Generar un nuevo nombre de archivo único
+    const newBlobName = `${uuidv4()}-${file.originalname}`;
+
+    // 3️⃣ Subir el archivo a Azure Blob Storage
+    const containerClient = this.blobServiceClient.getContainerClient(this.containerName);
+    const blobClient = containerClient.getBlockBlobClient(newBlobName);
+    await blobClient.uploadData(file.buffer, {
+      blobHTTPHeaders: { blobContentType: file.mimetype },
+    });
+
+    // Construir la nueva URL de la foto en Azure Blob Storage
+    const uploadedPhotoUrl = `${containerClient.url}/${newBlobName}`;
+
+    // Actualizar la base de datos con la nueva URL
+    await this.prisma.usuario.update({
+      where: { Email: userEmail },
+      data: { LinkFoto: uploadedPhotoUrl },
+    });
+
+    return { message: 'Foto actualizada correctamente', newPhotoUrl: uploadedPhotoUrl };
   }
   
 }

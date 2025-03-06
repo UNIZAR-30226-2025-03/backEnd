@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, HttpCode, HttpStatus, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpCode, HttpStatus, UploadedFile, UseInterceptors, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { ApiOperation, ApiResponse, ApiBody, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiOperation, ApiResponse, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { ConflictException, InternalServerErrorException } from '@nestjs/common';
 
-
+@ApiConsumes('multipart/form-data')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -87,5 +88,29 @@ export class UsersController {
   async updateUserNick(@Query('userEmail') userEmail: string,
                         @Query('Nick') Nick: string) {
     return this.usersService.updateUserNick(userEmail, Nick);
+  }
+
+  @ApiOperation({ summary: 'Actualizar la foto de perfil de un usuario' })
+  @ApiResponse({ status: 200, description: 'Foto actualizada correctamente.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })  // Usuario no encontrado
+  @ApiResponse({ status: 409, description: 'Error al procesar la foto.' })  // Error con la foto
+  @ApiResponse({ status: 500, description: 'Error interno del servidor.' })  // Error interno
+  @ApiBody({
+    description: 'Email y foto del usuario',
+    schema: {
+      type: 'object',
+      properties: {
+        Email: { type: 'string' },
+        file: { type: 'string', format: 'binary' }, // Aquí usamos 'string' con formato 'binary' para un solo archivo
+      },
+    },
+  })
+  @Post('update-photo')
+  @UseInterceptors(FileInterceptor('file')) // Usa Multer para interceptar el archivo
+  async updateUserPhoto(
+    @Body() input: { Email: string },
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    return this.usersService.updateUserPhoto(input.Email, file);
   }
 }
