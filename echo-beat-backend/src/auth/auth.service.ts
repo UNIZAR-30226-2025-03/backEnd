@@ -88,14 +88,14 @@ export class AuthService {
       `,
     };
 
-    // 🔹 Enviar el correo
+    // Enviar el correo
     await transporter.sendMail(mailOptions);
 
-    return { message: "Correo de recuperación enviado." };
+    return { message: "Correo de recuperación enviado."};
   }
 
-  // ✅ 2️⃣ Validar el token y actualizar la contraseña
-  async resetPassword(token: string, newPassword: string) {
+  // Validar el token y actualizar la contraseña
+  async resetPassword(token: string, newPassword: string) { 
     try {
       // 🔹 Decodificar el token
       const decoded = this.jwtService.verify(token, { secret: process.env.JWT_RESET_SECRET });
@@ -116,5 +116,30 @@ export class AuthService {
       throw new BadRequestException("Token inválido o expirado.");
     }
   }
+
+  async validateGoogleUser(profile: any) {
+    const { emails } = profile;
+    const email = emails[0].value;
+
+    // 🔹 Buscar al usuario en la base de datos
+    const user = await this.usersService.findUserByEmail(email);
+
+    if (!user) {
+      // ❌ Si el usuario no está registrado, rechazamos la autenticación
+      throw new UnauthorizedException('No tienes una cuenta registrada. Regístrate primero.');
+    }
+
+    return user;
+  }
+
+  async loginWithGoogle(user: any) {
+    const payload = { email: user.email, sub: user.id };
+    return {
+      accessToken: this.jwtService.sign(payload),
+      user,
+    };
+  }
+
+
 }
 

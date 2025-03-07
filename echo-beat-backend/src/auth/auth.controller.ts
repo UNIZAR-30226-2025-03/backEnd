@@ -1,10 +1,13 @@
-import { Controller, Get, Post, HttpCode, HttpStatus, Body, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, Post, HttpCode, HttpStatus, Body, Request, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { AuthGuard } from './guards/auth.guard';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UsersService } from '../users/users.service';
+import { AuthGuard as LocalAuthGuard } from './guards/auth.guard'; // Tu propio guard
+import { AuthGuard as GoogleAuthGuard } from '@nestjs/passport'; // Guard de Passport para Google
+
+
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -24,7 +27,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Obtener información del usuario autenticado' })
   @ApiResponse({ status: 200, description: 'Información del usuario obtenida exitosamente.' })
   @ApiResponse({ status: 401, description: 'Usuario no autenticado.' })
-  @UseGuards(AuthGuard)
+  @UseGuards(LocalAuthGuard)
   @Get('me')
   getUserInfo(@Request() request) {
     return request.Usuario;
@@ -48,6 +51,39 @@ export class AuthController {
   @Post('reset-password')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto.Token, resetPasswordDto.NewPassword);
+  }
+
+
+
+
+  @ApiOperation({ summary: 'Redirigir al usuario a Google para autenticación' })
+  @ApiResponse({ status: 302, description: 'Redirección a Google' })
+  @Get('google')
+  @UseGuards(GoogleAuthGuard('google'))
+  async googleAuth(@Req() req) {
+    // Esto solo redirige a Google
+  }
+
+  @ApiOperation({ summary: 'Callback de Google después de autenticación' })
+  @ApiResponse({
+    status: 200,
+    description: 'Autenticación exitosa, devuelve un JWT',
+    schema: {
+      example: {
+        accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        user: {
+          id: "123456",
+          email: "usuario@gmail.com",
+          name: "Usuario Google",
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado: El usuario no tiene cuenta registrada' })
+  @Get('google/redirect')
+  @UseGuards(GoogleAuthGuard('google'))
+  async googleAuthRedirect(@Req() req) {
+    return this.authService.loginWithGoogle(req.user);
   }
 
 

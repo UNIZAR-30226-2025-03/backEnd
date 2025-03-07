@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-//import { PassportModule } from '@nestjs/passport';
+import { PassportModule } from '@nestjs/passport';
+import { GoogleStrategy } from './strategies/google.strategy'; // Asegúrate de importar esto
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PrismaService } from 'src/prisma/prisma.service'; // un servicio global para inyectar Prisma
@@ -9,7 +10,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 
 @Module({
-  imports: [UsersModule,JwtModule.registerAsync({
+  imports: [UsersModule, PassportModule.register({ defaultStrategy: 'google' }),
+    JwtModule.registerAsync({
     imports: [ConfigModule],
     inject: [ConfigService],
     useFactory: (configService: ConfigService) => ({
@@ -18,7 +20,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     }),
   }),],
   controllers: [AuthController],
-  providers: [AuthService, PrismaService, JwtModule],
+  providers: [AuthService, PrismaService, JwtModule, GoogleStrategy],
   exports: [AuthService], // si quieres usarlo en otros módulos
 })
 export class AuthModule {}

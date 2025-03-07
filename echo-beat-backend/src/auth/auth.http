@@ -8,5 +8,14 @@ content-type: application/json
 
 ###
 
+POST http://localhost:3000/auth/forgot-password
+content-type: application/json
+
+{
+    "Email": "1@gmail.com"
+}
+
+###
+
 GET http://localhost:3000/auth/me
 authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJFbWFpbCI6IjFAZ21haWwuY29tIiwiaWF0IjoxNzM5ODExNDA3LCJleHAiOjE3Mzk4OTc4MDd9.7tuFcJCASgE5xT_CrlEQjmOh9ombHhRBDTfCgCdcMcY
