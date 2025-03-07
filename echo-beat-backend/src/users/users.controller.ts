@@ -116,4 +116,25 @@ export class UsersController {
   ) {
     return this.usersService.updateUserPhoto(input.Email, file);
   }
+
+  @ApiOperation({ summary: 'Actualizar la privacidad de un usuario' })
+  @ApiResponse({ status: 200, description: 'Tipo de privacidad actualizado correctamente.' })
+  @ApiResponse({ status: 404, description: 'El usuario no existe.' })
+  @ApiResponse({ status: 409, description: 'La privacidad utilizada como parámetro no es correcta.' })
+  @ApiBody({
+    description: 'Email y privacidad del usuario',
+    schema: {
+      type: 'object',
+      properties: {
+        Email: { type: 'string' },
+        Privacy: { type: 'string' },
+      },
+    },
+  })
+  @Post('update-privacy')
+  async updateUserPrivacy(
+    @Body() input: { Email: string; Privacy: string }
+  ) {
+    return this.usersService.updateUserPrivacy(input.Email, input.Privacy);
+  }
 }

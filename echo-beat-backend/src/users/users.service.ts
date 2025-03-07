@@ -195,6 +195,32 @@ export class UsersService {
     return user;
   }
 
+  async updateUserPrivacy(Email: string, Privacy: string) {
+    // Verificar si el nuevo Nick ya está en uso
+    const existingUser = await this.prisma.usuario.findUnique({
+      where: { Email: Email },
+    });
+  
+    if (!existingUser) {
+      throw new ConflictException('El usuario no existe.');
+    }
+  
+    if(Privacy != "privado" && Privacy != "protegido" && Privacy != "publico") {
+      throw new ConflictException('La privacidad utilizada como parámetro no es correcta.');
+    }
+    
+    // Actualizar el Nick del usuario
+    const updatedUser = await this.prisma.usuario.update({
+      where: { Email },
+      data: { Privacidad: Privacy },
+    });
+  
+    return {
+      message: 'Tipo de privacidad actualizado correctamente.',
+      newPrivacy: updatedUser.Privacidad,
+    };
+  }
+
   async updateUserNick(Email: string, Nick: string) {
     // Verificar si el nuevo Nick ya está en uso
     const existingUser = await this.prisma.usuario.findUnique({
