@@ -22,11 +22,14 @@ export class UsersService {
 
   async createUser(
     Email: string,
+    NombreCompleto: string, // 🔹 Nuevo campo obligatorio
     Password: string,
     Nick: string,
-    FechaNacimiento: Date,  // ✅ Asegurar que recibe Date
+    FechaNacimiento: Date  // ✅ Asegurar que recibe Date
   ) {
     if (!Nick) throw new Error("Nick es obligatorio.");
+    if (!NombreCompleto) throw new Error("El nombre completo es obligatorio.");
+
 
     try {
       // 🔹 Verificar si el usuario ya existe (Email o Nick repetido)
@@ -50,6 +53,7 @@ export class UsersService {
       const newUser = await this.prisma.usuario.create({
         data: {
           Email,
+          NombreCompleto, // 🔹 Guardar el nombre completo
           Password: hashedPassword,
           FechaNacimiento: new Date(),
           Nick: Nick,

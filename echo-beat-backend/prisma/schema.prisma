@@ -19,7 +19,7 @@ generator client {
 
 model Usuario {
   Email                   String @id
-  NombreCompleto          String
+  NombreCompleto          String 
   Password                String
   FechaNacimiento         DateTime 
   Nick                    String @unique  

@@ -17,6 +17,7 @@ export class UsersController {
     schema: {
       properties: {
         Email: { type: 'string' },
+        NombreCompleto: { type: 'string' },
         Password: { type: 'string' },
         Nick: { type: 'string' },
         FechaNacimiento: { type: 'string', format: 'date-time' },
@@ -27,6 +28,7 @@ export class UsersController {
   @Post('register')
   async register(@Body() input: {
     Email: string;
+    NombreCompleto: string;
     Password: string;
     Nick: string;
     FechaNacimiento: string;
@@ -34,6 +36,7 @@ export class UsersController {
     try {
       return await this.usersService.createUser(
         input.Email,
+        input.NombreCompleto,
         input.Password,
         input.Nick,
         new Date(input.FechaNacimiento), // Convertimos de string a Date

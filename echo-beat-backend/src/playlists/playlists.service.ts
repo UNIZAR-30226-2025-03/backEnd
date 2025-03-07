@@ -66,6 +66,7 @@ export class PlaylistsService {
         Nombre: createDto.name,
         Descripcion: 'Nueva playlist',
         Portada: '', // Ajusta si necesitas un valor por defecto
+        TipoLista: 'Album', // 🔹 Agrega un valor válido para TipoLista
       },
     });
 
