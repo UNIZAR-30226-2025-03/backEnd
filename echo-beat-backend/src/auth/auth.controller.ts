@@ -1,9 +1,10 @@
-import { Controller, Get, Req, Post, HttpCode, HttpStatus, Body, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, Res, Post, Inject, HttpCode, HttpStatus, Body, Request, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UsersService } from '../users/users.service';
+import { Response } from 'express'; // 🔹 Importa Response de Express
 import { AuthGuard as LocalAuthGuard } from './guards/auth.guard'; // Tu propio guard
 import { AuthGuard as GoogleAuthGuard } from '@nestjs/passport'; // Guard de Passport para Google
 
@@ -12,7 +13,8 @@ import { AuthGuard as GoogleAuthGuard } from '@nestjs/passport'; // Guard de Pas
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService,
+  ) {}
 
   @ApiOperation({ summary: 'Iniciar sesión' })
   @ApiResponse({ status: 200, description: 'Inicio de sesión exitoso.' })
@@ -82,8 +84,19 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'No autorizado: El usuario no tiene cuenta registrada' })
   @Get('google/redirect')
   @UseGuards(GoogleAuthGuard('google'))
-  async googleAuthRedirect(@Req() req) {
-    return this.authService.loginWithGoogle(req.user);
+  async googleAuthRedirect(@Req() req, @Res() res: Response) {
+    try {
+      const jwt = await this.authService.loginWithGoogle(req.user);
+
+      // 🔹 Define la URL del frontend manualmente
+      const frontendUrl = 'http://localhost:5173'; // Cambia esto por tu URL real
+
+      // 🔹 Redirigir al frontend con el token
+      res.redirect(`${frontendUrl}/auth/callback?token=${jwt.accessToken}`);
+    } catch (error) {
+      console.error("Error en googleAuthRedirect:", error);
+      res.status(500).json({ message: "Error interno en la autenticación con Google" });
+    }
   }
 
 
