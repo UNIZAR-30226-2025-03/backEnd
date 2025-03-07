@@ -8,10 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class UsersService {
   private blobServiceClient: BlobServiceClient;
-  private containerName: string;
   constructor(private readonly prisma: PrismaService) {
     const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-    this.containerName = 'user-photos';
     
     if (!connectionString) {
       throw new Error('Azure Storage connection string is not defined');
@@ -253,12 +251,18 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
+    const containerName = process.env.CONTAINER_USER_PHOTOS;
+
+    if (!containerName) {
+      throw new Error('La variable de entorno CONTAINER_USER_PHOTOS no está definida.');
+    }
+
     // Eliminar la foto anterior si existe
     if (user.LinkFoto) {
       const oldPhotoUrl = user.LinkFoto;
       const oldBlobName = oldPhotoUrl.split('/').pop();
       if (oldBlobName) {
-        const containerClient = this.blobServiceClient.getContainerClient(this.containerName);
+        const containerClient = this.blobServiceClient.getContainerClient(containerName);
         const blobClient = containerClient.getBlobClient(oldBlobName);
         await blobClient.deleteIfExists();
       }
@@ -267,8 +271,8 @@ export class UsersService {
     // Generar un nuevo nombre de archivo único
     const newBlobName = `${uuidv4()}-${file.originalname}`;
 
-    // 3️⃣ Subir el archivo a Azure Blob Storage
-    const containerClient = this.blobServiceClient.getContainerClient(this.containerName);
+    // Subir el archivo a Azure Blob Storage
+    const containerClient = this.blobServiceClient.getContainerClient(containerName);
     const blobClient = containerClient.getBlockBlobClient(newBlobName);
     await blobClient.uploadData(file.buffer, {
       blobHTTPHeaders: { blobContentType: file.mimetype },
