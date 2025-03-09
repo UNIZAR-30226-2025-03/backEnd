@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Socket.IO Test</title>
+  <title>Test de Streaming de Audio - Canción Específica</title>
   <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
   <style>
     #log {
@@ -19,10 +19,9 @@
   </style>
 </head>
 <body>
-  <h1>Test de Streaming de Audio</h1>
+  <h1>Test de Streaming de Audio - Canción Específica</h1>
   <div>
-    <button onclick="startStream()">Iniciar Streaming</button>
-    <button onclick="nextStream()">Siguiente Canción</button>
+    <button onclick="startStreamSong()">Iniciar Streaming de 'New_Bitch'</button>
     <button onclick="listBlobs()">Listar Archivos</button>
   </div>
   <div id="status">Estado: Desconectado</div>
@@ -30,11 +29,10 @@
   <div id="log"></div>
 
   <script>
-    // Para almacenar los chunks
+    // Variables para almacenar los chunks y la canción actual
     let audioChunks = [];
-    let audioContext = null;
     let currentSong = "";
-    let logElement = document.getElementById('log');
+    const logElement = document.getElementById('log');
 
     function log(message, type = 'normal') {
       const entry = document.createElement('div');
@@ -44,7 +42,7 @@
       logElement.scrollTop = logElement.scrollHeight;
     }
 
-    const socket = io('https://echobeatapi.duckdns.org', {
+    const socket = io('http://localhost:3000', {
       transports: ['websocket']
     });
     
@@ -88,15 +86,9 @@
       playAudio();
     });
     
-    function startStream() {
-      log('Solicitando inicio de streaming para playlist 6...');
-      socket.emit('startStream', { playlistId: '6' });
-      audioChunks = [];
-    }
-    
-    function nextStream() {
-      log('Solicitando siguiente canción para playlist 6...');
-      socket.emit('nextStream', { playlistId: '6' });
+    function startStreamSong() {
+      log("Solicitando inicio de streaming para la canción 'New_Bitch'...");
+      socket.emit('startStream', { songName: 'New_Bitch' });
       audioChunks = [];
     }
     

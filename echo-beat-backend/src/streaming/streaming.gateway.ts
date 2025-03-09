@@ -34,7 +34,7 @@ export class StreamingGateway {
    * Se obtiene el nombre de la primera canción usando 'getFirstSongInPlaylist'.
    */
   @SubscribeMessage('startStream')
-  async handleStartStream(client: Socket, payload: { playlistId: string }) {
+  async handleStartStreamAlbum(client: Socket, payload: { playlistId: string }) {
     console.log('Evento startStream recibido para playlist:', payload.playlistId);
     try {
       // 1. Obtiene la primera canción de la playlist
@@ -88,7 +88,7 @@ export class StreamingGateway {
    * Se basa en 'getNextSongInPlaylist' para obtener la siguiente.
    */
   @SubscribeMessage('nextStream')
-  async handleNextStream(client: Socket, payload: { playlistId: string }) {
+  async handleNextStreamAlbum(client: Socket, payload: { playlistId: string }) {
     console.log('Evento nextStream recibido para playlist:', payload.playlistId);
     try {
       // 1. Obtiene la siguiente canción de la playlist
@@ -138,6 +138,55 @@ export class StreamingGateway {
       client.emit('error', 'Error al transmitir la canción');
     }
   }
+
+  @SubscribeMessage('startStream')
+  async handleStartSong(client: Socket, payload: { songName: string }) {
+    console.log('Evento startStream recibido para canción:', payload.songName);
+    try {
+      if (!payload.songName) {
+        client.emit('error', 'No se proporcionó el nombre de la canción');
+        return;
+      }
+      // Se formatea el nombre de la canción reemplazando espacios por guiones bajos
+      const formattedSongName = payload.songName.replace(/ /g, '_');
+
+      // Se solicita el stream de Azure Blob usando el nombre de la canción
+      console.log('Solicitando stream de Azure para:', formattedSongName);
+      const containerName = 'cancionespsoft';
+      const nodeStream = await this.azureBlobService.getStream(containerName, `${formattedSongName}.mp3`);
+
+      if (!nodeStream) {
+        console.log('No se pudo obtener el stream de Azure');
+        client.emit('error', 'No se pudo obtener el stream');
+        return;
+      }
+      console.log('Stream de Azure obtenido correctamente');
+
+      // Se envía el stream al cliente en chunks
+      let chunkCount = 0;
+      nodeStream.on('data', (chunk: Buffer) => {
+        chunkCount++;
+        if (chunkCount % 10 === 0) {
+          console.log(`Enviando chunk #${chunkCount}, tamaño: ${chunk.length} bytes`);
+        }
+        client.emit('audioChunk', { data: chunk.toString('base64'), filename: payload.songName });
+      });
+
+      nodeStream.on('end', () => {
+        console.log(`Stream completado. Total enviado: ${chunkCount} chunks`);
+        client.emit('streamComplete');
+      });
+
+      nodeStream.on('error', (error: Error) => {
+        console.error('Error en el streaming:', error);
+        client.emit('error', 'Error al transmitir la canción');
+      });
+    } catch (error) {
+      console.error('Error al procesar la solicitud de streaming:', error);
+      client.emit('error', 'Error al transmitir la canción');
+    }
+  }
+
 
   @SubscribeMessage('pauseStream')
   handlePauseStream(client: Socket) {
