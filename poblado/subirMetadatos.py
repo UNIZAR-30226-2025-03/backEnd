@@ -1,6 +1,7 @@
 import os
 import urllib.parse
 import psycopg2
+import random
 from dotenv import load_dotenv
 
 # Cargar variables de entorno
@@ -25,6 +26,11 @@ def get_db_connection():
     conn.cursor().execute("SET search_path TO public;") 
     return conn
 
+GENEROS_FIJOS = [
+    "Rock", "Pop", "Jazz", "Blues", "Hip-Hop", 
+    "Reggaeton", "Salsa", "Electrónica",
+    "Metal", "Clásica"
+]
 
 # Función para insertar metadatos en PostgreSQL
 def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fecha_publicacion, generos):
@@ -74,13 +80,15 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
                 """, (album,))  # 🔹 Aquí `album` es el nombre del álbum
                 num_canciones_album = cursor.fetchone()[0]
 
+            # Escoger un genero aleatorio si no se especifica
+            genero_aleatorio = random.choice(GENEROS_FIJOS)
 
             # Insertar la canción
             cursor.execute("""
-                INSERT INTO \"Cancion\" (\"Nombre\", \"Duracion\", \"NumReproducciones\", \"NumFavoritos\", \"Portada\") 
-                VALUES (%s, %s, 0, 0, %s) 
+                INSERT INTO \"Cancion\" (\"Nombre\", \"Duracion\", \"NumReproducciones\", \"NumFavoritos\", \"Portada\", \"Genero\") 
+                VALUES (%s, %s, 0, 0, %s, %s) 
                 RETURNING \"Id\"
-            """, (nombre, duracion, 'URL'))
+            """, (nombre, duracion, 'URL', genero_aleatorio))
             cancion_id = cursor.fetchone()[0]
 
 
@@ -110,18 +118,6 @@ def insertar_metadata(nombre, artistas, album, duracion, licencia, url_blob, fec
                 cursor.execute("INSERT INTO \"AutorCancion\" (\"IdCancion\", \"NombreArtista\") VALUES (%s, %s)", 
                             (cancion_id, artista))
             
-
-            # Insertar géneros y relacionarlos con la canción
-            for genero in generos:
-                # Verificar si el género ya existe
-                cursor.execute("SELECT \"NombreGenero\" FROM \"Genero\" WHERE \"NombreGenero\" = %s", (genero,))
-                genero_existe = cursor.fetchone()
-                if not genero_existe:
-                    cursor.execute("INSERT INTO \"Genero\" (\"NombreGenero\") VALUES (%s)", (genero,))
-
-                # Insertar relación en GeneroCancion
-                cursor.execute("INSERT INTO \"GeneroCancion\" (\"NombreGenero\", \"IdCancion\") VALUES (%s, %s)", 
-                                (genero, cancion_id))
 
             conn.commit()
             print(f"✅ Metadata insertada en PostgreSQL: {nombre}")
@@ -218,12 +214,6 @@ def actualizar_listas():
     finally:
         cursor.close()
         conn.close()
-
-GENEROS_FIJOS = [
-    "Rock", "Pop", "Jazz", "Blues", "Hip-Hop", 
-    "Reggaeton", "Salsa", "Electrónica",
-    "Metal", "Clásica"
-]
 
 def insertar_generos_aleatorios():
     try:
