@@ -21,9 +21,9 @@ export class UsersService {
   async createUser(
     Email: string,
     NombreCompleto: string, // 🔹 Nuevo campo obligatorio
-    Password: string,
+    Password: string = "", // 🔹 Si no se pasa, será un string vacío
     Nick: string,
-    FechaNacimiento: Date  // ✅ Asegurar que recibe Date
+    FechaNacimiento: Date | null  
   ) {
     if (!Nick) throw new Error("Nick es obligatorio.");
     if (!NombreCompleto) throw new Error("El nombre completo es obligatorio.");
@@ -44,15 +44,18 @@ export class UsersService {
         throw new ConflictException("El correo o nickname ya están en uso.");
       }
 
-      // 🔹 Cifrar la contraseña
+      // 🔹 Cifrar la contraseña si no ha usado google
+      if (Password != null) {
       const hashedPassword = await bcrypt.hash(Password, 10);
+      Password = hashedPassword;
+      }
 
       // 🔹 Crear el usuario
       const newUser = await this.prisma.usuario.create({
         data: {
           Email,
           NombreCompleto, // 🔹 Guardar el nombre completo
-          Password: hashedPassword,
+          Password: Password,
           FechaNacimiento: new Date(),
           Nick: Nick,
         },

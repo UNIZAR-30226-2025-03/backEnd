@@ -118,19 +118,30 @@ export class AuthService {
   }
 
   async validateGoogleUser(profile: any) {
-    const { emails } = profile;
+    const { emails, displayName } = profile;
     const email = emails[0].value;
 
-    // 🔹 Buscar al usuario en la base de datos
-    const user = await this.usersService.findUserByEmail(email);
+    // 🔹 Buscar si el usuario ya existe en la base de datos
+    let user = await this.usersService.findUserByEmail(email);
 
     if (!user) {
-      // ❌ Si el usuario no está registrado, rechazamos la autenticación
-      throw new UnauthorizedException('No tienes una cuenta registrada. Regístrate primero.');
+        // ❌ Si el usuario no existe, lo registramos automáticamente
+        const randomId = Math.floor(Math.random() * 100000000) + 1;
+        const newNick = `echobeatUser_${randomId}`;
+
+        user = await this.usersService.createUser(
+            email, 
+            displayName || "Usuario de Google", // 🔹 Nombre Completo
+            "", // 🔹 Contraseña (No es necesaria)
+            newNick, // 🔹 Nickname generado
+            null // 🔹 Fecha de Nacimiento (se deja en null)
+        );
     }
 
     return user;
-  }
+ }
+
+
 
   async loginWithGoogle(user: any) {
     const payload = { email: user.email, sub: user.id };

@@ -1,9 +1,10 @@
-import { Controller, Get, Req, Res, Post, Inject, HttpCode, HttpStatus, Body, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, Res, Post, Inject, HttpCode, HttpStatus, Body, Request, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UsersService } from '../users/users.service';
+import { GoogleAuthService } from './google/google-auth.service';
 import { Response } from 'express'; // 🔹 Importa Response de Express
 import { AuthGuard as LocalAuthGuard } from './guards/auth.guard'; // Tu propio guard
 import { AuthGuard as GoogleAuthGuard } from '@nestjs/passport'; // Guard de Passport para Google
@@ -13,7 +14,9 @@ import { AuthGuard as GoogleAuthGuard } from '@nestjs/passport'; // Guard de Pas
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService,
+  constructor(private authService: AuthService,    
+              private readonly googleAuthService: GoogleAuthService,
+              private readonly UsersService: UsersService,
   ) {}
 
   @ApiOperation({ summary: 'Iniciar sesión' })
@@ -97,5 +100,71 @@ export class AuthController {
       console.error("Error en googleAuthRedirect:", error);
       res.status(500).json({ message: "Error interno en la autenticación con Google" });
     }
-  } 
+
+  }
+
+
+
+
+
+  @ApiOperation({ summary: 'Inicio de sesión con Google en dispositivos móviles' })
+  @ApiResponse({
+    status: 200,
+    description: 'Autenticación exitosa, devuelve un JWT',
+    schema: {
+      example: {
+        accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        user: {
+          id: "123456",
+          email: "usuario@gmail.com",
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado: El usuario no tiene cuenta registrada' })
+  @ApiBody({
+    description: 'ID Token de Google para autenticación',
+    required: true,
+    schema: {
+      type: 'object',
+      properties: {
+        idToken: { 
+          type: 'string', 
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' 
+        },
+      },
+    },
+  })
+  @Post('google/mobile')
+  async googleAuthMobile(@Body() body) {
+    const { idToken } = body;
+
+    try {
+      // 🔹 Verificar el token con Google
+      const ticket = await this.googleAuthService.verifyToken(idToken);
+      const payload = ticket.getPayload();
+
+      if (!payload) {
+        throw new UnauthorizedException("Token de Google inválido");
+      }
+      const email = payload?.email; 
+      if (!email) {
+        throw new UnauthorizedException("El email no está presente en el token de Google.");
+      }
+
+      // 🔹 Buscar usuario en la base de datos con el email validado
+      const user = await this.UsersService.findUserByEmail(email);
+
+
+      if (!user) {
+        // ❌ Si el usuario no existe, rechazamos la autenticación
+        throw new UnauthorizedException("No tienes una cuenta registrada. Regístrate primero.");
+      }
+
+      // 🔹 Generar un JWT
+      return this.authService.loginWithGoogle(user); 
+    } catch (error) {
+      throw new UnauthorizedException("Error al autenticar con Google");
+    }
+  }
 }
