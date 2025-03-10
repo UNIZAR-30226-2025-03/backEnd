@@ -52,11 +52,11 @@ model Cancion {
   Id                     Int     @id @default(autoincrement())
   Nombre                 String
   Duracion               Int 
+  Genero                 String
   NumReproducciones      Int     @default(0)
   NumFavoritos           Int     @default(0)
   Portada                String
   autores                AutorCancion[]
-  generos                GeneroCancion[]
   listas                 PosicionCancion[]
   cancionesGuardadas     CancionGuardada[]
   cancionesEscuchadas    CancionEscuchada[]
@@ -67,17 +67,7 @@ model Genero {
   NombreGenero           String  @id
   FotoGenero             String  @default("Sin foto")
   
-  canciones              GeneroCancion[]
   preferencias           Preferencia[]
-}
-
-model GeneroCancion {
-  NombreGenero           String
-  IdCancion              Int
-  
-  genero                 Genero  @relation(fields: [NombreGenero], references: [NombreGenero])
-  cancion                Cancion @relation(fields: [IdCancion], references: [Id])
-  @@id([NombreGenero, IdCancion])
 }
 
 model Lista {
