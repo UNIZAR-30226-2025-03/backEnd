@@ -1,6 +1,6 @@
-import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
 import { GeneroService } from './genero.service';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
 @Controller('genero')
 export class GeneroController {
@@ -32,10 +32,35 @@ export class GeneroController {
     return this.generoService.getGenerosConFotosByEmail(userEmail);
   }
 
-  @ApiOperation({ summary: 'Obtener todos los nombres de los géneros' })
-  @ApiResponse({ status: 200, description: 'Lista de nombres de géneros.' })
+  @ApiOperation({ summary: 'Obtener todos los géneros y si el usuario los tiene seleccionados' })
+  @ApiResponse({ status: 200, description: 'Lista de géneros con su estado de selección.' })
   @Get()
-  async getAllGeneros() {
-    return this.generoService.getAllGeneros();
+  async getAllGenerosWithUserSelection(@Query('userEmail') userEmail: string) {
+    return this.generoService.getAllGenerosWithUserSelection(userEmail);
+  }
+
+  @ApiOperation({ summary: 'Actualizar preferencias de género a un usuario' })
+  @ApiResponse({ status: 201, description: 'Preferencias actualizadas correctamente.' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos.' })
+  @ApiBody({
+    description: 'Objeto con el correo del usuario y una lista de géneros.',
+    schema: {
+      type: 'object',
+      properties: {
+        userEmail: { type: 'string', example: 'usuario@example.com' },
+        generos: { 
+          type: 'array', 
+          items: { type: 'string' }, 
+          example: ["Rock", "Pop", "Jazz"]
+        },
+      },
+    },
+  })
+  @HttpCode(HttpStatus.CREATED)
+  @Post('add')
+  async updateUserPreferences(
+    @Body() input: { userEmail: string; generos: string[] }
+  ) {
+    return this.generoService.updateUserPreferences(input.userEmail, input.generos);
   }
 }

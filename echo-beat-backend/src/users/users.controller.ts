@@ -93,21 +93,14 @@ export class UsersController {
     return this.usersService.updateUserNick(userEmail, Nick);
   }
 
-  @ApiOperation({ summary: 'Actualizar la foto de perfil de un usuario' })
+  @ApiOperation({ 
+    summary: 'Actualizar la foto de perfil de un usuario', 
+    description: '⚠️ Esta API no puede probarse en Swagger porque requiere la carga de archivos mediante `multipart/form-data` desde una aplicación cliente.' 
+  })
   @ApiResponse({ status: 200, description: 'Foto actualizada correctamente.' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })  // Usuario no encontrado
   @ApiResponse({ status: 409, description: 'Error al procesar la foto.' })  // Error con la foto
   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })  // Error interno
-  @ApiBody({
-    description: 'Email y foto del usuario',
-    schema: {
-      type: 'object',
-      properties: {
-        Email: { type: 'string' },
-        file: { type: 'string', format: 'binary' }, // Aquí usamos 'string' con formato 'binary' para un solo archivo
-      },
-    },
-  })
   @Post('update-photo')
   @UseInterceptors(FileInterceptor('file')) // Usa Multer para interceptar el archivo
   async updateUserPhoto(
@@ -116,6 +109,7 @@ export class UsersController {
   ) {
     return this.usersService.updateUserPhoto(input.Email, file);
   }
+  
 
   @ApiOperation({ summary: 'Actualizar la privacidad de un usuario' })
   @ApiResponse({ status: 200, description: 'Tipo de privacidad actualizado correctamente.' })

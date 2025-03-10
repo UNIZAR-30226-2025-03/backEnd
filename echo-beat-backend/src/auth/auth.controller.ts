@@ -97,8 +97,5 @@ export class AuthController {
       console.error("Error en googleAuthRedirect:", error);
       res.status(500).json({ message: "Error interno en la autenticación con Google" });
     }
-  }
-
-
-  
+  } 
 }
