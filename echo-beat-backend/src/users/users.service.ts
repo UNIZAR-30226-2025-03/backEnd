@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, InternalServerErrorException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BlobServiceClient } from '@azure/storage-blob';
 import * as bcrypt from 'bcrypt';
@@ -293,4 +293,50 @@ export class UsersService {
     return { message: 'Foto actualizada correctamente', newPhotoUrl: uploadedPhotoUrl };
   }
   
+  async updateUserBirthdate(userEmail: string, birthdate: string) {
+    if (!userEmail || !birthdate) {
+      throw new BadRequestException('Email y fecha de nacimiento son requeridos.');
+    }
+
+    const user = await this.prisma.usuario.findUnique({
+      where: { Email: userEmail },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado.');
+    }
+
+    const parsedDate = new Date(birthdate);
+    if (isNaN(parsedDate.getTime())) {
+      throw new BadRequestException('Formato de fecha inválido.');
+    }
+
+    await this.prisma.usuario.update({
+      where: { Email: userEmail },
+      data: { FechaNacimiento: parsedDate },
+    });
+
+    return { message: 'Fecha de nacimiento actualizada correctamente.', FechaNacimiento: parsedDate };
+  }
+
+  async updateUserFullName(userEmail: string, nombreReal: string) {
+    if (!userEmail || !nombreReal) {
+      throw new BadRequestException('Email y nombre real son requeridos.');
+    }
+
+    const user = await this.prisma.usuario.findUnique({
+      where: { Email: userEmail },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado.');
+    }
+
+    await this.prisma.usuario.update({
+      where: { Email: userEmail },
+      data: { NombreCompleto: nombreReal },
+    });
+
+    return { message: 'Nombre completo actualizado correctamente.', NombreCompleto: nombreReal };
+  }
 }

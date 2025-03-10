@@ -131,4 +131,46 @@ export class UsersController {
   ) {
     return this.usersService.updateUserPrivacy(input.Email, input.Privacy);
   }
+
+  @ApiOperation({ summary: 'Actualizar la fecha de nacimiento de un usuario' })
+  @ApiResponse({ status: 200, description: 'Fecha de nacimiento actualizada correctamente.' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos o formato incorrecto.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  @ApiBody({
+    description: 'Objeto con el correo del usuario y la nueva fecha de nacimiento',
+    schema: {
+      type: 'object',
+      properties: {
+        userEmail: { type: 'string', example: 'usuario@example.com' },
+        birthdate: { type: 'string', format: 'date', example: '1990-05-15' }
+      },
+    },
+  })
+  @Post('update-birthdate')
+  async updateUserBirthdate(
+    @Body() input: { userEmail: string; birthdate: string }
+  ) {
+    return this.usersService.updateUserBirthdate(input.userEmail, input.birthdate);
+  }
+
+  @ApiOperation({ summary: 'Actualizar el nombre completo de un usuario' })
+  @ApiResponse({ status: 200, description: 'Nombre completo actualizado correctamente.' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  @ApiBody({
+    description: 'Objeto con el correo del usuario y el nuevo nombre completo',
+    schema: {
+      type: 'object',
+      properties: {
+        userEmail: { type: 'string', example: 'usuario@example.com' },
+        nombreReal: { type: 'string', example: 'Juan Pérez' }
+      },
+    },
+  })
+  @Post('update-fullname')
+  async updateUserFullName(
+    @Body() input: { userEmail: string; nombreReal: string }
+  ) {
+    return this.usersService.updateUserFullName(input.userEmail, input.nombreReal);
+  }
 }
