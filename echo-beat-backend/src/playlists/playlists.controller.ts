@@ -64,6 +64,15 @@ export class PlaylistsController {
   @ApiResponse({ status: 200, description: 'Playlist eliminada correctamente.' })
   @ApiResponse({ status: 404, description: 'Playlist no encontrada.' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
+  @ApiBody({
+    description: 'Datos necesarios para eliminar una playlist',
+    schema: {
+      type: 'object',
+      properties: {
+        playlistId: { type: 'number', example: 42 },
+      },
+    },
+  })
   @Delete('delete')
   @HttpCode(HttpStatus.OK)
   async deletePlaylist(@Body() input: { playlistId: number;}) {
