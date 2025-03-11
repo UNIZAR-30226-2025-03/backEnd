@@ -26,17 +26,27 @@ model Usuario {
   LinkFoto                String?
   Privacidad              String @default("privado")
   UltimaListaEscuchada    Int?
-  UltimaCancionEscuchada  Int?
+  ColaReproduccion        Json?
   listas                  ListaReproduccion[]
   cancionesGuardadas      CancionGuardada[]
   cancionesEscuchadas     CancionEscuchada[]
   cancionesEscuchando     CancionEscuchando[]
-  tipoReproduccionActual  tipoReproduccionActual[]
   mensajesEnviados        Mensaje[] @relation("MensajesEnviados")
   mensajesRecibidos       Mensaje[] @relation("MensajesRecibidos")
   preferencias            Preferencia[]
   amistadesEnviadas       Amistad[] @relation("AmistadesEnviadas")
   amistadesRecibidas      Amistad[] @relation("AmistadesRecibidas")
+  likes                   Like[]
+}
+
+model Like {
+  EmailUsuario           String
+  IdLista                Int
+  tieneLike              Boolean @default(false)
+
+  usuario                Usuario  @relation(fields: [EmailUsuario], references: [Email])
+  lista                  Lista    @relation(fields: [IdLista], references: [Id])
+  @@id([EmailUsuario, IdLista]) // Relación N a N entre Usuario y Lista
 }
 
 model Artista {
@@ -81,7 +91,7 @@ model Lista {
   TipoLista              String   
 
   posiciones             PosicionCancion[]
-  tipoReproduccionActual tipoReproduccionActual[]
+  likes                  Like[]
   //Relaccion 1 a 1 con Album y ListaReproduccion
   album             Album?
   listaReproduccion ListaReproduccion?
@@ -135,16 +145,6 @@ model CancionEscuchando {
   usuario                Usuario  @relation(fields: [EmailUsuario], references: [Email])
   cancion                Cancion  @relation(fields: [IdCancion], references: [Id])
   @@id([EmailUsuario, IdCancion])
-}
-
-model tipoReproduccionActual {
-  EmailUsuario              String
-  IdLista                   Int
-  HayReproduccionAleatoria  Boolean @default(false)
-
-  usuario                Usuario  @relation(fields: [EmailUsuario], references: [Email])
-  cancion                Lista  @relation(fields: [IdLista], references: [Id])
-  @@id([EmailUsuario, IdLista])
 }
 
 model AutorAlbum {
