@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, HttpCode, HttpStatus, UploadedFile, UseInt
 import { UsersService } from './users.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiResponse, ApiBody, ApiConsumes } from '@nestjs/swagger';
-import { ConflictException, InternalServerErrorException } from '@nestjs/common';
+import { ConflictException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 
 @Controller('users')
 export class UsersController {
@@ -50,12 +50,26 @@ export class UsersController {
     }
   }
 
-  @ApiOperation({ summary: 'Obtener la última canción escuchada por el usuario y el minuto de reproducción' })
-  @ApiResponse({ status: 200, description: 'Datos obtenidos correctamente.' })
-  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
-  @Get('last-played-song')
-  async getUserLastPlayedSong(@Query('userEmail') userEmail: string) {
-    return this.usersService.getUserLastPlayedSong(userEmail);
+  @ApiOperation({
+    summary: 'Obtener la primera canción de la cola de reproducción de un usuario',
+    description: 'Esta API devuelve la primera canción de la cola de reproducción de un usuario.',
+  })
+  @ApiResponse({ status: 200, description: 'Canción obtenida correctamente.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado o cola vacía.' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
+  @Get('first-song')
+  @HttpCode(HttpStatus.OK)
+  async getUserFirstSongFromQueue(@Query('Email') Email: string) {
+    try {
+      return await this.usersService.getUserFirstSongFromQueue(Email);
+    } catch (error) {
+      // Manejo específico del error de cola vacía
+      if (error.message === 'No se encontró la cola de reproducción del usuario o está vacía.') {
+        throw new NotFoundException(error.message);
+      }
+      // Para otros errores, lanzamos un error genérico del servidor
+      throw new Error('Error interno del servidor.');
+    }
   }
 
   @ApiOperation({ summary: 'Obtener la última lista/álbum  escuchada por el usuario' })

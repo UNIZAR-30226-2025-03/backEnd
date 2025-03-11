@@ -105,50 +105,55 @@ export class UsersService {
     });
   }
 
-  // Nuevo método para obtener UltimaCancionEscuchada y UltimaListaEscuchada
-  async getUserLastPlayedSong(Email: string) {
+  async getUserFirstSongFromQueue(Email: string) {
+    // 🔹 Obtener el usuario y su ColaReproduccion
     const user = await this.prisma.usuario.findUnique({
       where: {
         Email,
       },
       select: {
-        UltimaCancionEscuchada: true,
+        ColaReproduccion: true,  // Este es el campo que contiene el JSON con la cola de reproducción
       },
     });
-
-    if (!user) {
-      throw new Error('Usuario no encontrado');
+  
+    if (!user || !Array.isArray(user.ColaReproduccion) || user.ColaReproduccion.length === 0) {
+      throw new Error('No se encontró la cola de reproducción del usuario o está vacía.');
     }
-
-    const registro = await this.prisma.cancionEscuchando.findUnique({
-      where: {
-        EmailUsuario_IdCancion: {
-          EmailUsuario: Email, // Parámetro de entrada
-          IdCancion: user.UltimaCancionEscuchada as number, // Extraído de la consulta anterior
-        },
-      },
-      select: {
-        MinutoEscucha: true,
-      },
-    });
-
+  
+    // 🔹 Asegurarse de que cada elemento en la ColaReproduccion tiene la propiedad IdCancion
+    const firstSong = user.ColaReproduccion[0];
+  
+    if (typeof firstSong !== 'object' || !firstSong || !('IdCancion' in firstSong)) {
+      throw new Error('La cola de reproducción no tiene un formato esperado.');
+    }
+  
+    // 🔹 Convertir `IdCancion` a número
+    const firstSongId = Number(firstSong.IdCancion);  // Aseguramos que el ID sea un número
+  
+    // 🔹 Verificar si la canción existe
     const cancion = await this.prisma.cancion.findUnique({
       where: {
-        Id: user.UltimaCancionEscuchada as number, // Buscar por el IdCancion obtenido de usuario
+        Id: firstSongId,  // Ahora pasamos el ID correctamente como número
       },
       select: {
         Nombre: true,
         Portada: true,
       },
     });
-
+  
+    if (!cancion) {
+      throw new Error('No se encontró la canción en la cola de reproducción.');
+    }
+  
+    // 🔹 Devolver los datos de la primera canción de la cola
     return {
-      UltimaCancionEscuchada: user.UltimaCancionEscuchada,
-      MinutoEscucha: registro ? registro.MinutoEscucha : null,
-      Nombre: cancion?.Nombre,
-      Portada: cancion?.Portada,
+      PrimeraCancionId: firstSongId,
+      Nombre: cancion.Nombre,
+      Portada: cancion.Portada,
     };
   }
+  
+  
 
   // Nuevo método para obtener UltimaCancionEscuchada y UltimaListaEscuchada
   async getUserLastPlayedList(Email: string) {
