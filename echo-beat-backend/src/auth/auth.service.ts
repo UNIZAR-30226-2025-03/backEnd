@@ -78,7 +78,7 @@ export class AuthService {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: Email,
-      subject: 'Recuperación de Contraseña - GoBeat',
+      subject: 'Recuperación de Contraseña - EchoBeat',
       html: `
         <p>Hola,</p>
         <p>Hemos recibido una solicitud para restablecer tu contraseña.</p>
