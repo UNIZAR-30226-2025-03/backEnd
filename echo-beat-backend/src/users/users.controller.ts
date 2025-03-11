@@ -4,7 +4,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiResponse, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { ConflictException, InternalServerErrorException } from '@nestjs/common';
 
-@ApiConsumes('multipart/form-data')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -101,6 +100,17 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })  // Usuario no encontrado
   @ApiResponse({ status: 409, description: 'Error al procesar la foto.' })  // Error con la foto
   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })  // Error interno
+  @ApiConsumes('multipart/form-data') // Indicar que la API consume archivos
+  @ApiBody({
+    description: 'Datos para crear una playlist',
+    schema: {
+      type: 'object',
+      properties: {
+        emailUsuario: { type: 'string', example: 'any@example.com' },
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
   @Post('update-photo')
   @UseInterceptors(FileInterceptor('file')) // Usa Multer para interceptar el archivo
   async updateUserPhoto(
@@ -172,5 +182,13 @@ export class UsersController {
     @Body() input: { userEmail: string; nombreReal: string }
   ) {
     return this.usersService.updateUserFullName(input.userEmail, input.nombreReal);
+  }
+
+  @ApiOperation({ summary: 'Obtener todas las URLs de imágenes del contenedor predeterminado' })
+  @ApiResponse({ status: 200, description: 'Lista de URLs de imágenes obtenidas correctamente.' })
+  @ApiResponse({ status: 500, description: 'Error interno al acceder al contenedor de Azure.' })
+  @Get('default-photos')
+  async getAllImageUrls() {
+    return this.usersService.getAllUserDefaultImageUrls();
   }
 }

@@ -58,6 +58,7 @@ export class UsersService {
           Password: Password,
           FechaNacimiento: new Date(),
           Nick: Nick,
+          LinkFoto: process.env.URL_DEFAULT_PHOTO,
         },
       });
 
@@ -338,5 +339,27 @@ export class UsersService {
     });
 
     return { message: 'Nombre completo actualizado correctamente.', NombreCompleto: nombreReal };
+  }
+
+  async getAllUserDefaultImageUrls() {
+    // 🔹 Verificar que el contenedor está configurado
+
+    const containerName = process.env.CONTAINER_DEFAULT_PHOTOS;
+
+    if (!containerName) {
+      throw new Error('La variable de entorno CONTAINER_DEFAULT_PHOTOS no está definida.');
+    }
+
+    const containerClient = this.blobServiceClient.getContainerClient(containerName);
+    const imageUrls: string[] = [];
+
+    // 🔹 Acceder a todos los blobs en el contenedor
+    for await (const blob of containerClient.listBlobsFlat()) {
+      // Construir la URL de cada imagen
+      const imageUrl = `${containerClient.url}/${blob.name}`;
+      imageUrls.push(imageUrl);
+    }
+
+    return imageUrls;
   }
 }
