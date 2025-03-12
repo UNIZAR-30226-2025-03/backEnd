@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, UploadedFile, UseInterceptors, HttpCode, HttpStatus} from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, UploadedFile, UseInterceptors, HttpCode, HttpStatus, NotFoundException} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PlaylistsService } from './playlists.service';
@@ -128,5 +128,53 @@ export class PlaylistsController {
   async deleteSongFromPlaylist(@Body() input: { playlistId: number; songId: number }) 
   {
     return this.playlistsService.deleteSongFromPlaylist(input.playlistId, input.songId);
+  }
+
+  @ApiOperation({ summary: 'Obtener detalles de una playlist a partir de su ID' })
+  @ApiResponse({ status: 200, description: 'Playlist encontrada.', type: Object })
+  @ApiResponse({ status: 404, description: 'Playlist no encontrada.' })
+  @Get('lista/:idList')
+  @HttpCode(HttpStatus.OK)
+  async getListDetails(@Param('idList') idList: string) {
+    // Convertir idList a número
+    const ListId = Number(idList);
+
+    if (isNaN(ListId)) {
+      throw new NotFoundException('ID de la playlist no es válida.');
+    }
+
+    return this.playlistsService.getListDetails(ListId);
+  }
+
+  @ApiOperation({ summary: 'Obtener detalles de un álbum a partir de su ID de lista' })
+  @ApiResponse({ status: 200, description: 'Álbum encontrado.', type: Object })
+  @ApiResponse({ status: 404, description: 'Álbum no encontrado.' })
+  @Get('album/:idLista')
+  @HttpCode(HttpStatus.OK)
+  async getAlbumDetails(@Param('idLista') idLista: string) {
+    // Convertir idList a número
+    const ListId = Number(idLista);
+
+    if (isNaN(ListId)) {
+      throw new NotFoundException('ID del álbum no es válido.');
+    }
+
+    return this.playlistsService.getAlbumDetails(ListId);
+  }
+
+  @ApiOperation({ summary: 'Obtener detalles de una playlist a partir de su ID de playlist' })
+  @ApiResponse({ status: 200, description: 'Playlist encontrada.', type: Object })
+  @ApiResponse({ status: 404, description: 'Playlist no encontrada.' })
+  @Get('playlist/:idPlaylist')
+  @HttpCode(HttpStatus.OK)
+  async getPlaylistDetails(@Param('idPlaylist') idPlaylist: string) {
+        // Convertir idList a número
+    const ListId = Number(idPlaylist);
+
+    if (isNaN(ListId)) {
+      throw new NotFoundException('ID de la playlist no es válido.');
+    }
+
+    return this.playlistsService.getPlaylistDetails(ListId);
   }
 }

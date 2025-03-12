@@ -422,4 +422,66 @@ export class PlaylistsService {
       predominantGenre: predominantGenre, // Mostramos el género predominante
     };
   }
+
+  async getListDetails(idList: number) {
+    // Buscar la playlist por la ID
+    const playlist = await this.prisma.lista.findUnique({
+      where: {
+        Id: idList, // Buscar por la ID proporcionada
+      },
+      select: {
+        Nombre: true,
+        NumCanciones: true,
+        Duracion: true,
+        NumLikes: true,
+        Descripcion: true,
+        Portada: true,
+        TipoLista: true,
+      },
+    });
+
+    if (!playlist) {
+      throw new NotFoundException('No se encontró la playlist con la ID proporcionada.');
+    }
+
+    return playlist;
+  }
+
+  async getAlbumDetails(idLista: number) {
+    // Buscar en la tabla Album por la IdLista
+    const album = await this.prisma.album.findUnique({
+      where: {
+        Id: idLista, // Buscar por la ID proporcionada
+      },
+      select: {
+        NumReproducciones: true,
+        FechaLanzamiento: true,
+      },
+    });
+
+    if (!album) {
+      throw new NotFoundException('No se encontró el álbum con la ID proporcionada.');
+    }
+
+    return album;
+  }
+
+  async getPlaylistDetails(idPlaylist: number) {
+    // Buscar en la tabla ListaReproduccion por la IdPlaylist
+    const playlist = await this.prisma.listaReproduccion.findUnique({
+      where: {
+        Id: idPlaylist, // Buscar por la ID proporcionada
+      },
+      select: {
+        TipoPrivacidad: true,
+        Genero: true,
+      },
+    });
+
+    if (!playlist) {
+      throw new NotFoundException('No se encontró la playlist con la ID proporcionada.');
+    }
+
+    return playlist;
+  }
 }
