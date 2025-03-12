@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as fs from 'fs';
 import * as compression from 'compression';  // Importa el middleware
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const port = process.env.PORT || 3000;
@@ -26,6 +27,10 @@ async function bootstrap() {
 
   // Habilitar la compresión Gzip para todas las respuestas
   app.use(compression({ threshold: 0 }));
+
+    // Configuración de body-parser para limitar el tamaño de las cargas
+  app.use(bodyParser.json({ limit: '10mb' })); // Limitar el tamaño de los archivos a 10 MB
+  app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
   // Configuración de Swagger (opcional)
   const config = new DocumentBuilder()
