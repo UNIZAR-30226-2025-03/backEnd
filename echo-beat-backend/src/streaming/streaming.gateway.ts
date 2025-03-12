@@ -33,7 +33,7 @@ export class StreamingGateway {
    * Inicia la reproducción de la primera canción de la playlist.
    * Se obtiene el nombre de la primera canción usando 'getFirstSongInPlaylist'.
    */
-  @SubscribeMessage('startStream')
+  @SubscribeMessage('startStreamAlbum')
   async handleStartStreamAlbum(client: Socket, payload: { playlistId: string }) {
     console.log('Evento startStream recibido para playlist:', payload.playlistId);
     try {
