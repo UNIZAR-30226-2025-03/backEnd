@@ -56,8 +56,8 @@ export class PlaylistsController {
   @ApiResponse({ status: 200, description: 'Devuelve todas las canciones de la playlist' })
   @ApiResponse({ status: 404, description: 'No se encontró la playlist' })
   @Get(':id/songs')
-  async getSongsByPlaylist(@Param('id') id: string) {
-    return await this.playlistsService.getSongsByPlaylistId(id);
+  async getSongsByList(@Param('id') id: string) {
+    return await this.playlistsService.getSongsByListId(id);
   }
 
   @ApiOperation({ summary: 'Eliminar una playlist por su ID' })

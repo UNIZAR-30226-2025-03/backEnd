@@ -88,9 +88,9 @@ export class PlaylistsService {
   /**
    * Obtiene todas las canciones de una lista de reproducción.
    */
-  async getSongsByPlaylistId(playlistId: string) {
+  async getSongsByListId(listId: string) {
     const playlist = await this.prisma.lista.findUnique({
-      where: { Id: Number(playlistId) },
+      where: { Id: Number(listId) },
       include: {
         posiciones: {
           include: { cancion: true }
@@ -99,7 +99,7 @@ export class PlaylistsService {
     });
 
     if (!playlist) {
-      throw new NotFoundException(`No se encontró la playlist con ID ${playlistId}`);
+      throw new NotFoundException(`No se encontró la playlist con ID ${listId}`);
     }
 
     // Extraer las canciones de la lista
@@ -112,7 +112,7 @@ export class PlaylistsService {
       portada: posicion.cancion.Portada,
     }));
 
-    return { playlistId, nombreLista: playlist.Nombre, canciones };
+    return { canciones };
   }
 
   async createPlaylist(
