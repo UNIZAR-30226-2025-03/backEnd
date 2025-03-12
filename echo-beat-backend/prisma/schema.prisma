@@ -177,13 +177,14 @@ model Mensaje {
 }
 
 model Amistad {
-  EmailFriendSender    String
-  EmailFriendReceiver   String
-  FechaComienzoAmistad  DateTime  @default(now())
+  NickFriendSender     String
+  NickFriendReceiver   String
+  EstadoSolicitud       String @default("pendiente")
+  FechaComienzoAmistad  DateTime?
 
-  sender                Usuario  @relation("AmistadesEnviadas", fields: [EmailFriendSender], references: [Email])
-  receiver              Usuario  @relation("AmistadesRecibidas", fields: [EmailFriendReceiver], references: [Email])
-  @@id([EmailFriendSender, EmailFriendReceiver])
+  sender                Usuario  @relation("AmistadesEnviadas", fields: [NickFriendSender], references: [Nick])
+  receiver              Usuario  @relation("AmistadesRecibidas", fields: [NickFriendReceiver], references: [Nick])
+  @@id([NickFriendSender, NickFriendReceiver])
 }
 
 model Preferencia {
