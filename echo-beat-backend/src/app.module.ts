@@ -12,12 +12,13 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AzureBlobModule } from './azure-blob/azure-blob.module';
 import { GeneroModule } from './genero/genero.module';
+import { AmistadesModule } from './amistades/amistades.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true, // Hace que las variables de entorno estén disponibles globalmente
     envFilePath: '.env',
-  }),AuthModule, UsersModule, PlaylistsModule, StreamingModule, SearchModule, PrismaModule, AzureBlobModule, GeneroModule],
+  }),AuthModule, UsersModule, PlaylistsModule, StreamingModule, SearchModule, PrismaModule, AzureBlobModule, GeneroModule, AmistadesModule],
   controllers: [AppController],
   providers: [AppService, ChatGateway, PrismaService],
 })
