@@ -64,19 +64,10 @@ export class PlaylistsController {
   @ApiResponse({ status: 200, description: 'Playlist eliminada correctamente.' })
   @ApiResponse({ status: 404, description: 'Playlist no encontrada.' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
-  @ApiBody({
-    description: 'Datos necesarios para eliminar una playlist',
-    schema: {
-      type: 'object',
-      properties: {
-        playlistId: { type: 'number', example: 42 },
-      },
-    },
-  })
-  @Delete('delete')
+  @Delete('delete/:idLista')
   @HttpCode(HttpStatus.OK)
-  async deletePlaylist(@Body() input: { playlistId: number;}) {
-    return this.playlistsService.deletePlaylist(input.playlistId);
+  async deletePlaylist(@Param('idLista') idLista: string) {
+    return this.playlistsService.deletePlaylist(Number(idLista));
   }
 
   @ApiOperation({ summary: 'Obtener todas las URLs de imágenes del contenedor predeterminado de lista' })
@@ -96,17 +87,17 @@ export class PlaylistsController {
     schema: {
       type: 'object',
       properties: {
-        playlistId: { type: 'number', example: 42 },
+        idLista: { type: 'number', example: 42 },
         songId: { type: 'number', example: 15 },
       },
     },
   })
-  @Post('add-song')
+  @Post('add-song/:idLista')
   @HttpCode(HttpStatus.OK)
   async addSongToPlaylist(
-    @Body() input: { playlistId: number; songId: number }
+    @Body() input: { idLista: number; songId: number }
   ) {
-    return this.playlistsService.addSongToPlaylist(input.playlistId, input.songId);
+    return this.playlistsService.addSongToPlaylist(input.idLista, input.songId);
   }
 
   @ApiOperation({ summary: 'Eliminar una canción de la playlist y ajustar las posiciones' })
@@ -118,16 +109,16 @@ export class PlaylistsController {
     schema: {
       type: 'object',
       properties: {
-        playlistId: { type: 'number', example: 42 },
+        idLista: { type: 'number', example: 42 },
         songId: { type: 'number', example: 15 },
       },
     },
   })
-  @Delete('delete-song')
+  @Delete('delete-song/:idLista')
   @HttpCode(HttpStatus.OK)
-  async deleteSongFromPlaylist(@Body() input: { playlistId: number; songId: number }) 
+  async deleteSongFromPlaylist(@Body() input: { idLista: number; songId: number }) 
   {
-    return this.playlistsService.deleteSongFromPlaylist(input.playlistId, input.songId);
+    return this.playlistsService.deleteSongFromPlaylist(input.idLista, input.songId);
   }
 
   @ApiOperation({ summary: 'Obtener detalles de una playlist a partir de su ID' })
