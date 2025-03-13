@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, HttpCode, HttpStatus, UploadedFile, UseInt
 import { UsersService } from './users.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiResponse, ApiBody, ApiConsumes } from '@nestjs/swagger';
-import { ConflictException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { ConflictException, InternalServerErrorException, NotFoundException, BadRequestException } from '@nestjs/common';
 
 @Controller('users')
 export class UsersController {
@@ -33,6 +33,10 @@ export class UsersController {
     FechaNacimiento: string;
   }) {
     try {
+      if (!input.FechaNacimiento || isNaN(Date.parse(input.FechaNacimiento))) {
+        throw new BadRequestException('Fecha de nacimiento inválida o formato incorrecto.');
+      }
+
       return await this.usersService.createUser(
         input.Email,
         input.NombreCompleto,

@@ -50,13 +50,16 @@ export class UsersService {
       Password = hashedPassword;
       }
 
+      if (FechaNacimiento == null) {
+        throw new BadRequestException("La fecha de nacimiento es obligatoria.");
+      }
       // 🔹 Crear el usuario
       const newUser = await this.prisma.usuario.create({
         data: {
           Email,
           NombreCompleto, // 🔹 Guardar el nombre completo
           Password: Password,
-          FechaNacimiento: new Date(),
+          FechaNacimiento: FechaNacimiento,
           Nick: Nick,
           LinkFoto: process.env.URL_DEFAULT_PHOTO,
         },
