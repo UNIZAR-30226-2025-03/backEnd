@@ -47,7 +47,7 @@ export class PlaylistsController {
 
   @ApiOperation({ summary: 'Obtiene todas las playlists creadas por un usuario' })
   @ApiResponse({ status: 200, description: 'Retorna un arreglo de playlists.' })
-  @Get('user')
+  @Get('user/:userEmail')
   async getPlaylistsByUser(@Param('userEmail') userEmail: string) {
     return await this.playlistsService.findAllByUser(userEmail);
   }
