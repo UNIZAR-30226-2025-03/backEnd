@@ -177,8 +177,8 @@ model Mensaje {
 }
 
 model Amistad {
-  NickFriendSender     String
-  NickFriendReceiver   String
+  NickFriendSender      String
+  NickFriendReceiver    String
   EstadoSolicitud       String @default("pendiente")
   FechaComienzoAmistad  DateTime?
 
