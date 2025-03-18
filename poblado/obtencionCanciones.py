@@ -1,6 +1,7 @@
 import requests
 from subirCancionesAlContainer import subir_a_azure
 from subirMetadatos import insertar_metadata, verificar_autores_de_todos_los_albumes, actualizar_listas, insertar_generos_aleatorios
+from crearListasPredefinidas import crear_listas_predefinidas
 
 # Client ID de Jamendo
 CLIENT_ID = "4ca1da2f"
@@ -46,11 +47,18 @@ if response.status_code == 200:
         print("🔍 Verificando autores de todos los álbumes...")
         verificar_autores_de_todos_los_albumes()
         print("✅ Verificación de autores completada.")
+
         print("🔄 Actualizando listas...")
         actualizar_listas()
         print("✅ Duracion y numCanciones de las listas actualizadas.")
+
+        print("🎶 Insertando generos aleatorios...")
         insertar_generos_aleatorios()
         print("✅ Generos insertados.")
+        
+        print("🎵 Creando listas predefinidas...")
+        crear_listas_predefinidas()
+        print("✅ Listas predefinidas creadas.")
     else:
         print("No se encontraron canciones.")
 else:
