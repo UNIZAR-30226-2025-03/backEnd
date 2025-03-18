@@ -247,4 +247,33 @@ export class PlaylistsController {
       body.imageUrl
     );
   }
+
+  @ApiOperation({
+    summary: 'Actualizar la foto de una playlist a partir de su ID',
+    description: 'Sube una nueva foto para una playlist existente y elimina la foto anterior si existe.',
+  })
+  @ApiResponse({ status: 200, description: 'Foto de la playlist actualizada correctamente.' })
+  @ApiResponse({ status: 404, description: 'Lista no encontrada o la lista no es una playlist.' })
+  @ApiResponse({ status: 403, description: 'No tienes permisos para actualizar esta playlist.' })
+  @ApiConsumes('multipart/form-data') // Indicar que la API consume archivos
+  @ApiBody({
+    description: 'Datos para actualizar la foto de la playlist',
+    schema: {
+      type: 'object',
+      properties: {
+        userEmail: { type: 'string', example: 'user@example.com'},
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @Post('update-photo/:idLista')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('file'))
+  async updatePlaylistPhoto(
+    @Param('idLista') idLista: number,  // Recibimos idLista desde los parámetros de la URL
+    @Body() input: { userEmail: string },  // Recibimos userEmail desde el cuerpo
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return await this.playlistsService.updatePlaylistPhoto(Number(idLista), file, input.userEmail);
+  }
 }

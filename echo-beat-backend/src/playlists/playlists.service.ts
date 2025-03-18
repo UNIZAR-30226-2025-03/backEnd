@@ -194,27 +194,27 @@ export class PlaylistsService {
     const usuario = await this.prisma.usuario.findUnique({
       where: { Email: emailUsuario },
     });
-  
+
     if (!usuario) {
       throw new NotFoundException('No se encontró un usuario con ese correo.');
     }
-  
+
     // 🔹 1️⃣ Validar que el tipo de privacidad es correcto
     if (tipoPrivacidad != "privado" && tipoPrivacidad != "protegido" && tipoPrivacidad != "publico") {
       throw new BadRequestException('El tipo de privacidad debe ser "publico", "privado" o "protegido".');
     }
-  
+
     // 🔹 2️⃣ Comprobar si la URL proporcionada es válida
     const containerName = process.env.CONTAINER_DEFAULT_LIST_PHOTOS;
     if (!containerName) {
       throw new Error('La variable de entorno CONTAINER_DEFAULT_LIST_PHOTOS no está definida.');
     }
-  
+
     // 🔹 3️⃣ Validar que la URL es del contenedor correcto
     if (!imageUrl.startsWith(`${process.env.AZURE_BLOB_URL}/${containerName}`)) {
       throw new BadRequestException('El enlace proporcionado no corresponde al contenedor correcto.');
     }
-  
+
     // 🔹 4️⃣ Insertar en la tabla Lista con la URL de la imagen
     const newPlaylist = await this.prisma.lista.create({
       data: {
@@ -227,7 +227,7 @@ export class PlaylistsService {
         TipoLista: 'ListaReproduccion',
       },
     });
-  
+
     // 🔹 5️⃣ Insertar en la tabla ListaReproduccion
     await this.prisma.listaReproduccion.create({
       data: {
@@ -238,14 +238,14 @@ export class PlaylistsService {
         Genero: "Sin genero",
       },
     });
-  
+
     return {
       message: 'Playlist creada correctamente',
       playlistId: newPlaylist.Id,
       imageUrl: imageUrl,
     };
   }
-  
+
 
   async deletePlaylist(userEmail: string, playlistId: number) {
     // 🔹 1️⃣ Verificar si la playlist existe
@@ -676,5 +676,67 @@ export class PlaylistsService {
     return {
       message: 'Portada de la playlist actualizada correctamente',
     };
+  }
+
+  async updatePlaylistPhoto(idLista: number, file: Express.Multer.File, userEmail: string) {
+    const lista = await this.prisma.lista.findUnique({
+      where: { Id: idLista },
+      select: { Portada: true },
+    });
+
+    if (!lista) {
+      throw new NotFoundException('Lista no encontrada');
+    }
+
+    const playlist = await this.prisma.listaReproduccion.findUnique({
+      where: { Id: idLista },
+    });
+
+    if (!playlist) {
+      throw new NotFoundException('La lista no es una playlist');
+    }
+
+    // 🔹 3️⃣ Comprobar si el email del usuario coincide con el EmailAutor de la tabla ListaReproduccion
+    if (playlist.EmailAutor !== userEmail) {
+      throw new ForbiddenException('No tienes permisos para actualizar esta playlist');
+    }
+
+    const containerName = process.env.CONTAINER_LIST_PHOTOS;
+
+    if (!containerName) {
+      throw new Error('La variable de entorno CONTAINER_LIST_PHOTOS no está definida.');
+    }
+
+    // Eliminar la foto anterior si existe
+    if (lista.Portada) {
+      const oldPhotoUrl = lista.Portada;
+      const oldBlobName = oldPhotoUrl.split('/').pop();
+      if (oldBlobName) {
+        const containerClient = this.blobServiceClient.getContainerClient(containerName);
+        const blobClient = containerClient.getBlobClient(oldBlobName);
+        await blobClient.deleteIfExists();
+      }
+    }
+
+    // Generar un nuevo nombre de archivo único
+    const newBlobName = `${uuidv4()}-${file.originalname}`;
+
+    // Subir el archivo a Azure Blob Storage
+    const containerClient = this.blobServiceClient.getContainerClient(containerName);
+    const blobClient = containerClient.getBlockBlobClient(newBlobName);
+    await blobClient.uploadData(file.buffer, {
+      blobHTTPHeaders: { blobContentType: file.mimetype },
+    });
+
+    // Construir la nueva URL de la foto en Azure Blob Storage
+    const uploadedPhotoUrl = `${containerClient.url}/${newBlobName}`;
+
+    // Actualizar la base de datos con la nueva URL
+    await this.prisma.lista.update({
+      where: { Id: idLista },
+      data: { Portada: uploadedPhotoUrl },
+    });
+
+    return { message: 'Foto actualizada correctamente', newPhotoUrl: uploadedPhotoUrl };
   }
 }
