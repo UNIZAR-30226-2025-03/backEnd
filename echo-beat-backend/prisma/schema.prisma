@@ -27,6 +27,7 @@ model Usuario {
   Privacidad              String @default("privado")
   ColaReproduccion        Json?
   PosicionCola            Int?
+  UltimaListaEscuchada    Int?
   listas                  ListaReproduccion[]
   cancionesGuardadas      CancionGuardada[]
   cancionesEscuchadas     CancionEscuchada[]
