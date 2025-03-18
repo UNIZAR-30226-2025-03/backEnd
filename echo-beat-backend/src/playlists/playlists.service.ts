@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Readable } from 'stream';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { v4 as uuidv4 } from 'uuid';
@@ -184,7 +184,70 @@ export class PlaylistsService {
     };
   }
 
-  async deletePlaylist(playlistId: number) {
+  async createPlaylistWithImageUrl(
+    emailUsuario: string,
+    nombrePlaylist: string,
+    descripcionPlaylist: string,
+    tipoPrivacidad: string,
+    imageUrl: string
+  ) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { Email: emailUsuario },
+    });
+  
+    if (!usuario) {
+      throw new NotFoundException('No se encontró un usuario con ese correo.');
+    }
+  
+    // 🔹 1️⃣ Validar que el tipo de privacidad es correcto
+    if (tipoPrivacidad != "privado" && tipoPrivacidad != "protegido" && tipoPrivacidad != "publico") {
+      throw new BadRequestException('El tipo de privacidad debe ser "publico", "privado" o "protegido".');
+    }
+  
+    // 🔹 2️⃣ Comprobar si la URL proporcionada es válida
+    const containerName = process.env.CONTAINER_DEFAULT_LIST_PHOTOS;
+    if (!containerName) {
+      throw new Error('La variable de entorno CONTAINER_DEFAULT_LIST_PHOTOS no está definida.');
+    }
+  
+    // 🔹 3️⃣ Validar que la URL es del contenedor correcto
+    if (!imageUrl.startsWith(`${process.env.AZURE_BLOB_URL}/${containerName}`)) {
+      throw new BadRequestException('El enlace proporcionado no corresponde al contenedor correcto.');
+    }
+  
+    // 🔹 4️⃣ Insertar en la tabla Lista con la URL de la imagen
+    const newPlaylist = await this.prisma.lista.create({
+      data: {
+        Nombre: nombrePlaylist,
+        NumCanciones: 0,
+        Duracion: 0,
+        NumLikes: 0,
+        Descripcion: descripcionPlaylist,
+        Portada: imageUrl,
+        TipoLista: 'ListaReproduccion',
+      },
+    });
+  
+    // 🔹 5️⃣ Insertar en la tabla ListaReproduccion
+    await this.prisma.listaReproduccion.create({
+      data: {
+        Id: newPlaylist.Id, // La misma ID de Lista
+        Nombre: nombrePlaylist,
+        TipoPrivacidad: tipoPrivacidad,
+        EmailAutor: emailUsuario,
+        Genero: "Sin genero",
+      },
+    });
+  
+    return {
+      message: 'Playlist creada correctamente',
+      playlistId: newPlaylist.Id,
+      imageUrl: imageUrl,
+    };
+  }
+  
+
+  async deletePlaylist(userEmail: string, playlistId: number) {
     // 🔹 1️⃣ Verificar si la playlist existe
     const playlist = await this.prisma.lista.findUnique({
       where: {
@@ -200,7 +263,25 @@ export class PlaylistsService {
       throw new NotFoundException('No se encontró la playlist con el ID proporcionado.');
     }
 
-    // 🔹 2️⃣ Eliminar la portada de Azure Blob Storage
+    // 🔹Verificar si el usuario es el autor de la playlist
+    const playlistReproduccion = await this.prisma.listaReproduccion.findUnique({
+      where: {
+        Id: playlistId,
+      },
+      select: {
+        EmailAutor: true,
+      },
+    });
+
+    if (!playlistReproduccion) {
+      throw new NotFoundException('No se encontró la relación con la lista de reproducción.');
+    }
+
+    if (playlistReproduccion.EmailAutor !== userEmail) {
+      throw new ForbiddenException('No eres el autor de la playlist. No puedes eliminarla.');
+    }
+
+    // 🔹 Eliminar la portada de Azure Blob Storage
     if (playlist.Portada) {
       const oldBlobName = playlist.Portada.split('/').pop();
       const containerName = process.env.CONTAINER_LIST_PHOTOS;
@@ -214,22 +295,22 @@ export class PlaylistsService {
       }
     }
 
-    // 🔹 3️⃣ Borrar todas las filas en PosicionCancion donde IdLista sea el ID de la playlist
+    // 🔹 Borrar todas las filas en PosicionCancion donde IdLista sea el ID de la playlist
     await this.prisma.posicionCancion.deleteMany({
       where: { IdLista: playlistId },
     });
 
-    // 🔹 4️⃣ Borrar la fila en ListaReproduccion
+    // 🔹 Borrar la fila en ListaReproduccion
     await this.prisma.listaReproduccion.delete({
       where: { Id: playlistId },
     });
 
-    // 🔹 5️⃣ Borrar la fila en Lista
+    // 🔹 Borrar la fila en Lista
     await this.prisma.lista.delete({
       where: { Id: playlistId },
     });
 
-    // 🔹 6️⃣ Actualizar la tabla Usuario, poniendo UltimaListaEscuchada en null donde sea la playlist eliminada
+    // 🔹 Actualizar la tabla Usuario, poniendo UltimaListaEscuchada en null donde sea la playlist eliminada
     await this.prisma.usuario.updateMany({
       where: { UltimaListaEscuchada: playlistId },
       data: { UltimaListaEscuchada: null },
@@ -331,6 +412,21 @@ export class PlaylistsService {
       },
     });
 
+    // 🔹 8️⃣ Actualizar el número de canciones y la duración total
+    const totalSongs = positionSongs.length; // Total de canciones en la playlist
+
+    // Calcular la duración total sumando la duración de todas las canciones
+    const totalDuration = positionSongs.reduce((sum, { cancion }) => sum + (cancion.Duracion || 0), 0);
+
+    // Actualizamos los campos NumCanciones y Duracion de la tabla Lista
+    await this.prisma.lista.update({
+      where: { Id: playlistId },
+      data: {
+        NumCanciones: totalSongs,  // Actualizamos el número de canciones
+        Duracion: totalDuration,   // Actualizamos la duración total
+      },
+    });
+
     return {
       message: 'Canción añadida a la playlist correctamente',
       position: newPosition,
@@ -386,7 +482,7 @@ export class PlaylistsService {
         Posicion: { decrement: 1 },  // Reducimos la posición de las canciones siguientes
       },
     });
-    
+
     //  Contar los géneros de las canciones en la playlist
     const positionSongs = await this.prisma.posicionCancion.findMany({
       where: {
@@ -417,6 +513,22 @@ export class PlaylistsService {
         Genero: predominantGenre,
       },
     });
+
+    // 🔹 9️⃣ Actualizar el número de canciones y la duración total
+    const totalSongs = positionSongs.length; // Total de canciones en la playlist
+
+    // Calcular la duración total sumando la duración de todas las canciones
+    const totalDuration = positionSongs.reduce((sum, { cancion }) => sum + (cancion.Duracion || 0), 0);
+
+    // Actualizamos los campos NumCanciones y Duracion de la tabla Lista
+    await this.prisma.lista.update({
+      where: { Id: playlistId },
+      data: {
+        NumCanciones: totalSongs,  // Actualizamos el número de canciones
+        Duracion: totalDuration,   // Actualizamos la duración total
+      },
+    });
+
     return {
       message: 'Canción eliminada correctamente y las posiciones actualizadas. También se ha redefinido el género de la lista',
       predominantGenre: predominantGenre, // Mostramos el género predominante
@@ -483,5 +595,86 @@ export class PlaylistsService {
     }
 
     return playlist;
+  }
+
+  async updatePlaylistCover(userEmail: string, playlistId: number, imageUrl: string) {
+    const containerNameDefault = process.env.CONTAINER_DEFAULT_LIST_PHOTOS;
+    if (!containerNameDefault) {
+      throw new BadRequestException('El contenedor de imágenes predefinidas no está definido en las variables de entorno.');
+    }
+
+    const containerName = process.env.CONTAINER_LIST_PHOTOS;
+    if (!containerName) {
+      throw new BadRequestException('El contenedor de imágenes no está definido en las variables de entorno.');
+    }
+
+    // Comprobar si la URL de la imagen corresponde al contenedor correcto
+    if (!imageUrl.startsWith(`${process.env.AZURE_BLOB_URL}/${containerNameDefault}`)) {
+      throw new BadRequestException('El enlace proporcionado no corresponde al contenedor correcto.');
+    }
+
+    // Obtener el nombre de la imagen del enlace
+    const imageName = imageUrl.split('/').pop();
+
+    if (!imageName) {
+      throw new BadRequestException('No se pudo extraer el nombre de la imagen del enlace.');
+    }
+
+    // Verificar si la imagen existe en Blob Storage
+    const containerClient = this.blobServiceClient.getContainerClient(containerNameDefault);
+    const blobClient = containerClient.getBlobClient(imageName);
+
+    const exists = await blobClient.exists();
+    if (!exists) {
+      throw new NotFoundException('La imagen no existe en el contenedor de Blob Storage.');
+    }
+
+    // Obtener la playlist del usuario
+    const user = await this.prisma.usuario.findUnique({
+      where: { Email: userEmail },
+    });
+
+    if (!user) {
+      throw new NotFoundException('No se encontró el usuario.');
+    }
+
+    // Obtener la listaReproduccion y comprobar si el usuario es el autor de la playlist
+    const playlist = await this.prisma.listaReproduccion.findUnique({
+      where: { Id: playlistId },
+      include: { lista: true }, // Incluimos la tabla Lista asociada a la listaReproduccion
+    });
+
+    if (!playlist) {
+      throw new NotFoundException('No se encontró la playlist asociada al ID proporcionado.');
+    }
+
+    // Comprobar si el autor de la lista es el usuario actual
+    if (playlist.EmailAutor !== userEmail) {
+      throw new ForbiddenException('El usuario no es el autor de esta playlist.');
+    }
+
+    // Si ya existe una portada anterior, comprobar si es del mismo contenedor y borrarla
+    if (playlist.lista.Portada) {
+      const previousImageName = playlist.lista.Portada.split('/').pop();
+      if (previousImageName && previousImageName !== imageName) {
+        const previousContainerClient = this.blobServiceClient.getContainerClient(containerName);
+        const previousBlobClient = previousContainerClient.getBlobClient(previousImageName);
+        const previousExists = await previousBlobClient.exists();
+        if (previousExists) {
+          // Eliminar la imagen anterior
+          await previousBlobClient.deleteIfExists();
+        }
+      }
+    }
+
+    // Actualizar la portada de la playlist en la tabla Lista
+    await this.prisma.lista.update({
+      where: { Id: playlistId },
+      data: { Portada: imageUrl },
+    });
+
+    return {
+      message: 'Portada de la playlist actualizada correctamente',
+    };
   }
 }

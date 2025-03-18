@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, UploadedFile, UseInterceptors, HttpCode, HttpStatus, NotFoundException} from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, UploadedFile, UseInterceptors, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PlaylistsService } from './playlists.service';
@@ -6,44 +6,79 @@ import { PlaylistsService } from './playlists.service';
 @ApiTags('Playlist')
 @Controller('playlists')
 export class PlaylistsController {
-  constructor(private readonly playlistsService: PlaylistsService) {}
+  constructor(private readonly playlistsService: PlaylistsService) { }
 
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Crear una nueva playlist',
     description: '⚠️ Esta API no puede probarse en Swagger porque requiere la carga de archivos mediante `multipart/form-data` desde una aplicación cliente.'
-   })
-   @ApiResponse({ status: 201, description: 'Playlist creada correctamente.' })
-   @ApiResponse({ status: 400, description: 'Datos inválidos o tipo de privacidad incorrecto.' })
-   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
-   @ApiConsumes('multipart/form-data') // Indicar que la API consume archivos
-   @ApiBody({
-     description: 'Datos para crear una playlist',
-     schema: {
-       type: 'object',
-       properties: {
+  })
+  @ApiResponse({ status: 201, description: 'Playlist creada correctamente.' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos o tipo de privacidad incorrecto.' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
+  @ApiConsumes('multipart/form-data') // Indicar que la API consume archivos
+  @ApiBody({
+    description: 'Datos para crear una playlist',
+    schema: {
+      type: 'object',
+      properties: {
         emailUsuario: { type: 'string', example: 'any@example.com' },
         nombrePlaylist: { type: 'string', example: 'Mis Favoritos' },
         descripcionPlaylist: { type: 'string', example: 'Playlist con mis canciones favoritas' },
         tipoPrivacidad: { type: 'string', enum: ['publico', 'privado', 'protegido'], example: 'publico' },
         file: { type: 'string', format: 'binary' },
-       },
-     },
-   })
-   @Post('create')
-   @HttpCode(HttpStatus.CREATED)
-   @UseInterceptors(FileInterceptor('file'))
-   async createPlaylist(
-     @Body() input: { emailUsuario: string; nombrePlaylist: string; descripcionPlaylist: string; tipoPrivacidad: string },
-     @UploadedFile() file: Express.Multer.File
-   ) {
-     return this.playlistsService.createPlaylist(
-       input.emailUsuario,
-       input.nombrePlaylist,
-       input.descripcionPlaylist,
-       input.tipoPrivacidad,
-       file
-     );
-   }
+      },
+    },
+  })
+  @Post('create')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('file'))
+  async createPlaylist(
+    @Body() input: { emailUsuario: string; nombrePlaylist: string; descripcionPlaylist: string; tipoPrivacidad: string },
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    return this.playlistsService.createPlaylist(
+      input.emailUsuario,
+      input.nombrePlaylist,
+      input.descripcionPlaylist,
+      input.tipoPrivacidad,
+      file
+    );
+  }
+
+  @ApiOperation({
+    summary: 'Crear una nueva playlist con una imagen predefinida (URL)',
+    description: '⚠️ Esta API permite crear una playlist usando un enlace a una imagen predefinida (URL).'
+  })
+  @ApiResponse({ status: 201, description: 'Playlist creada correctamente.' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos o tipo de privacidad incorrecto.' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
+  @ApiBody({
+    description: 'Datos para crear una playlist con una imagen predefinida',
+    schema: {
+      type: 'object',
+      properties: {
+        emailUsuario: { type: 'string', example: 'any@example.com' },
+        nombrePlaylist: { type: 'string', example: 'Mis Favoritos' },
+        descripcionPlaylist: { type: 'string', example: 'Playlist con mis canciones favoritas' },
+        tipoPrivacidad: { type: 'string', enum: ['publico', 'privado', 'protegido'], example: 'publico' },
+        imageUrl: { type: 'string', example: 'https://example.com/path/to/image.jpg' }, // URL de la imagen
+      },
+    },
+  })
+  @Post('create-with-url')
+  @HttpCode(HttpStatus.CREATED)
+  async createPlaylistWithImageUrl(
+    @Body() input: { emailUsuario: string; nombrePlaylist: string; descripcionPlaylist: string; tipoPrivacidad: string; imageUrl: string }
+  ) {
+    return this.playlistsService.createPlaylistWithImageUrl(
+      input.emailUsuario,
+      input.nombrePlaylist,
+      input.descripcionPlaylist,
+      input.tipoPrivacidad,
+      input.imageUrl
+    );
+  }
+
 
   @ApiOperation({ summary: 'Obtiene todas las playlists creadas por un usuario' })
   @ApiResponse({ status: 200, description: 'Retorna un arreglo de playlists.' })
@@ -60,15 +95,29 @@ export class PlaylistsController {
     return await this.playlistsService.getSongsByListId(id);
   }
 
-  @ApiOperation({ summary: 'Eliminar una playlist por su ID' })
+  @ApiOperation({ summary: 'Eliminar una playlist por su ID y email de usuario' })
   @ApiResponse({ status: 200, description: 'Playlist eliminada correctamente.' })
   @ApiResponse({ status: 404, description: 'Playlist no encontrada.' })
+  @ApiResponse({ status: 403, description: 'No tienes permisos para eliminar esta playlist.' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
-  @Delete('delete/:idLista')
+  @Delete('delete')
   @HttpCode(HttpStatus.OK)
-  async deletePlaylist(@Param('idLista') idLista: string) {
-    return this.playlistsService.deletePlaylist(Number(idLista));
+  @ApiBody({
+    description: 'Parametros necesarios para eliminar una playlist',
+    schema: {
+      type: 'object',
+      properties: {
+        userEmail: { type: 'string', example: 'user@example.com' },
+        idLista: { type: 'number', example: 1 },
+      },
+    },
+  })
+  async deletePlaylist(
+    @Body() body: { userEmail: string; idLista: number }
+  ) {
+    return this.playlistsService.deletePlaylist(body.userEmail, body.idLista);
   }
+
 
   @ApiOperation({ summary: 'Obtener todas las URLs de imágenes del contenedor predeterminado de lista' })
   @ApiResponse({ status: 200, description: 'Lista de URLs de imágenes obtenidas correctamente.' })
@@ -116,8 +165,7 @@ export class PlaylistsController {
   })
   @Delete('delete-song/:idLista')
   @HttpCode(HttpStatus.OK)
-  async deleteSongFromPlaylist(@Body() input: { idLista: number; songId: number }) 
-  {
+  async deleteSongFromPlaylist(@Body() input: { idLista: number; songId: number }) {
     return this.playlistsService.deleteSongFromPlaylist(input.idLista, input.songId);
   }
 
@@ -159,7 +207,7 @@ export class PlaylistsController {
   @Get('playlist/:idPlaylist')
   @HttpCode(HttpStatus.OK)
   async getPlaylistDetails(@Param('idPlaylist') idPlaylist: string) {
-        // Convertir idList a número
+    // Convertir idList a número
     const ListId = Number(idPlaylist);
 
     if (isNaN(ListId)) {
@@ -167,5 +215,36 @@ export class PlaylistsController {
     }
 
     return this.playlistsService.getPlaylistDetails(ListId);
+  }
+
+  @ApiOperation({
+    summary: 'Actualizar la portada de una playlist con una imagen predefinida',
+    description: 'Actualiza la portada de la playlist con la URL proporcionada si el usuario es el autor.',
+  })
+  @ApiResponse({ status: 200, description: 'Portada actualizada correctamente.' })
+  @ApiResponse({ status: 404, description: 'Playlist no encontrada.' })
+  @ApiResponse({ status: 403, description: 'No eres el autor de la playlist.' })
+  @ApiResponse({ status: 400, description: 'URL de imagen incorrecta o no válida.' })
+  @ApiBody({
+    description: 'Datos para actualizar la portada de la playlist',
+    schema: {
+      type: 'object',
+      properties: {
+        userEmail: { type: 'string', example: 'user@example.com' },
+        playlistId: { type: 'number', example: 1 },
+        imageUrl: { type: 'string', example: 'https://myblobstorage.blob.core.windows.net/container/image.jpg' },
+      },
+    },
+  })
+  @Post('update-cover')
+  @HttpCode(HttpStatus.OK)
+  async updatePlaylistCover(
+    @Body() body: { userEmail: string; playlistId: number; imageUrl: string }
+  ) {
+    return this.playlistsService.updatePlaylistCover(
+      body.userEmail,
+      body.playlistId,
+      body.imageUrl
+    );
   }
 }
