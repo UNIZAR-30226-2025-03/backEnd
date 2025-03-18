@@ -137,7 +137,32 @@ export class UsersController {
   ) {
     return this.usersService.updateUserPhoto(input.Email, file);
   }
-  
+
+  @ApiOperation({
+    summary: 'Actualizar la foto de perfil del usuario con una imagen predeterminada',
+    description: 'Permite al usuario actualizar su foto de perfil usando una imagen predefinida desde el contenedor de imágenes.',
+  })
+  @ApiResponse({ status: 200, description: 'Foto de perfil actualizada correctamente.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  @ApiResponse({ status: 400, description: 'La URL proporcionada no corresponde al contenedor correcto o la imagen no existe.' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
+  @ApiBody({
+    description: 'Datos para actualizar la foto de perfil del usuario',
+    schema: {
+      type: 'object',
+      properties: {
+        userEmail: { type: 'string', example: 'user@example.com' },
+        imageUrl: { type: 'string', example: 'https://<blob-storage-url>/path-to-image.jpg' },
+      },
+    },
+  })
+  @Post('update-photo-default')
+  @HttpCode(HttpStatus.OK)
+  async updateUserDefaultPhoto(
+    @Body() input: { userEmail: string, imageUrl: string }
+  ) {
+    return await this.usersService.updateUserDefaultPhoto(input.userEmail, input.imageUrl);
+  }  
 
   @ApiOperation({ summary: 'Actualizar la privacidad de un usuario' })
   @ApiResponse({ status: 200, description: 'Tipo de privacidad actualizado correctamente.' })

@@ -370,4 +370,70 @@ export class UsersService {
 
     return imageUrls;
   }
+
+    async updateUserDefaultPhoto(userEmail: string, imageUrl: string) {
+      const containerNameDefault = process.env.CONTAINER_DEFAULT_PHOTOS;
+      if (!containerNameDefault) {
+        throw new BadRequestException('El contenedor de imágenes predefinidas no está definido en las variables de entorno.');
+      }
+  
+      const containerName = process.env.CONTAINER_USER_PHOTOS;
+      if (!containerName) {
+        throw new BadRequestException('El contenedor de imágenes no está definido en las variables de entorno.');
+      }
+  
+      // Comprobar si la URL de la imagen corresponde al contenedor correcto
+      if (!imageUrl.startsWith(`${process.env.AZURE_BLOB_URL}/${containerNameDefault}`)) {
+        throw new BadRequestException('El enlace proporcionado no corresponde al contenedor correcto.');
+      }
+  
+      // Obtener el nombre de la imagen del enlace
+      const imageName = imageUrl.split('/').pop();
+  
+      if (!imageName) {
+        throw new BadRequestException('No se pudo extraer el nombre de la imagen del enlace.');
+      }
+  
+      // Verificar si la imagen existe en Blob Storage
+      const containerClient = this.blobServiceClient.getContainerClient(containerNameDefault);
+      const blobClient = containerClient.getBlobClient(imageName);
+  
+      const exists = await blobClient.exists();
+      if (!exists) {
+        throw new NotFoundException('La imagen no existe en el contenedor de Blob Storage.');
+      }
+  
+      // Obtener la playlist del usuario
+      const user = await this.prisma.usuario.findUnique({
+        where: { Email: userEmail },
+      });
+  
+      if (!user) {
+        throw new NotFoundException('No se encontró el usuario.');
+      }
+  
+      // Si ya existe una portada anterior, comprobar si es del mismo contenedor y borrarla
+      if (user.LinkFoto) {
+        const previousImageName = user.LinkFoto.split('/').pop();
+        if (previousImageName && previousImageName !== imageName) {
+          const previousContainerClient = this.blobServiceClient.getContainerClient(containerName);
+          const previousBlobClient = previousContainerClient.getBlobClient(previousImageName);
+          const previousExists = await previousBlobClient.exists();
+          if (previousExists) {
+            // Eliminar la imagen anterior
+            await previousBlobClient.deleteIfExists();
+          }
+        }
+      }
+  
+      // Actualizar la portada de la playlist en la tabla Lista
+      await this.prisma.usuario.update({
+        where: { Email: userEmail},
+        data: { LinkFoto: imageUrl },
+      });
+  
+      return {
+        message: 'Foto de perfil del usuario actualizada correctamente',
+      };
+    }
 }
