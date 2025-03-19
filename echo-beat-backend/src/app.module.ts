@@ -22,6 +22,6 @@ import { ChatModule } from './chat/chat.module';
     envFilePath: '.env',
   }),AuthModule, UsersModule, PlaylistsModule, StreamingModule, SearchModule, PrismaModule, AzureBlobModule, GeneroModule, AmistadesModule, ColaReproduccionModule, ChatModule],
   controllers: [AppController],
-  providers: [AppService, ChatGateway, PrismaService],
+  providers: [AppService, PrismaService],
 })
 export class AppModule {}
