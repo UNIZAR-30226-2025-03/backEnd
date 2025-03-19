@@ -501,10 +501,16 @@ export class PlaylistsService {
       genreCount[genre] = (genreCount[genre] || 0) + 1;
     });
 
-    //  Determinar el género predominante
-    const predominantGenre = Object.keys(genreCount).reduce((prev, curr) => {
-      return genreCount[curr] > genreCount[prev] ? curr : prev;
-    });
+    // 🔹  Determinar el género predominante solo si hay canciones
+    let predominantGenre: string | null = null;
+
+    if (positionSongs.length > 0) {
+      predominantGenre = Object.keys(genreCount).reduce((prev, curr) => {
+        return genreCount[curr] > genreCount[prev] ? curr : prev;
+      });
+    } else {
+      predominantGenre = "Sin genero"; // O pon null si prefieres: predominantGenre = null;
+    }
 
     // Actualizar el género de la lista de reproducción
     await this.prisma.listaReproduccion.update({
