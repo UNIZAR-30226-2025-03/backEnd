@@ -739,4 +739,18 @@ export class PlaylistsService {
 
     return { message: 'Foto actualizada correctamente', newPhotoUrl: uploadedPhotoUrl };
   }
+
+
+    /**
+    * Obtiene el nombre de una canción por su ID.
+   */
+    async getSongName(songId: number): Promise<string | null> {
+
+      // Busca los datos de la canción
+      const songName = await this.prisma.cancion.findUnique({
+        where: { Id: songId },
+      });
+  
+      return songName ? songName.Nombre : null;
+    }
 }
