@@ -167,14 +167,15 @@ model AutorCancion {
 }
 
 model Mensaje {
+  Id                    Int      @id @default(autoincrement())
   EmailSender           String
   EmailReceiver         String
   Mensaje               String
   Fecha                 DateTime @default(now())
+  Leido                 Boolean  @default(false)
 
   sender                Usuario  @relation("MensajesEnviados", fields: [EmailSender], references: [Email])
   receiver              Usuario  @relation("MensajesRecibidos", fields: [EmailReceiver], references: [Email])
-  @@id([EmailSender, EmailReceiver, Fecha])
 }
 
 model Amistad {
