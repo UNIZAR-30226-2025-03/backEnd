@@ -30,15 +30,20 @@ export class StreamingGateway {
   
 
   @SubscribeMessage('startStream')
-  async handleStartSong(client: Socket, payload: { songName: string }) {
-    console.log('Evento startStream recibido para canción:', payload.songName);
+  async handleStartSong(client: Socket, payload: { songId: number }) {
+    console.log('Evento startStream recibido para canción:', payload.songId);
     try {
-      if (!payload.songName) {
+      if (!payload.songId) {
         client.emit('error', 'No se proporcionó el nombre de la canción');
         return;
       }
+      const songName = await this.playlistsService.getSongName(payload.songId);
+      if (!songName) {
+        client.emit('error', 'No se encontró la canción solicitada');
+        return;
+      }
       // Se formatea el nombre de la canción reemplazando espacios por guiones bajos
-      const formattedSongName = payload.songName.replace(/ /g, '_');
+      const formattedSongName = songName.replace(/ /g, '_');
 
       // Se solicita el stream de Azure Blob usando el nombre de la canción
       console.log('Solicitando stream de Azure para:', formattedSongName);
@@ -59,7 +64,7 @@ export class StreamingGateway {
         if (chunkCount % 10 === 0) {
           console.log(`Enviando chunk #${chunkCount}, tamaño: ${chunk.length} bytes`);
         }
-        client.emit('audioChunk', { data: chunk.toString('base64'), filename: payload.songName });
+        client.emit('audioChunk', { data: chunk.toString('base64'), filename: songName });
       });
 
       nodeStream.on('end', () => {

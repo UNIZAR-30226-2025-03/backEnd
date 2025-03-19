@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test de Streaming de Audio - Canción Específica</title>
+  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+  <style>
+    #log {
+      height: 300px;
+      width: 100%;
+      border: 1px solid #ccc;
+      overflow-y: scroll;
+      padding: 10px;
+      font-family: monospace;
+      margin-top: 10px;
+    }
+    .error { color: red; }
+    .success { color: green; }
+    .info { color: blue; }
+  </style>
+</head>
+<body>
+  <h1>Test de Streaming de Audio - Canción Específica</h1>
+  <div>
+    <!-- Se solicita la canción con ID 30 -->
+    <button onclick="startStreamSong(30, 'New_Bitch')">Iniciar Streaming de 'New_Bitch' (ID 30)</button>
+    <button onclick="listBlobs()">Listar Archivos</button>
+  </div>
+  <div id="status">Estado: Desconectado</div>
+  <audio id="player" controls></audio>
+  <div id="log"></div>
+
+  <script>
+    // VARIABLES GLOBALES
+    let mediaSource = null;
+    let mediaSourceURL = null;
+    let sourceBuffer = null;
+    let queue = [];
+    let currentSong = null;
+    let expectedDuration = 0;
+    let hasStartedPlaying = false;
+    let streamingActive = false;
+    const MIN_BUFFERED_SECONDS = 3; // Umbral aumentado a 3 segundos
+
+    const logElement = document.getElementById('log');
+    const player = document.getElementById('player');
+    const socket = io('http://localhost:3000', { transports: ['websocket'] });
+    let bufferCheckInterval = null; // Para chequear periódicamente el buffer
+
+    function log(message, type = 'normal') {
+      const entry = document.createElement('div');
+      entry.textContent = `[${new Date().toISOString().slice(11, 19)}] ${message}`;
+      entry.className = type;
+      logElement.appendChild(entry);
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+
+    // Si ocurre un error en el reproductor, se intenta reiniciar el stream
+    player.onerror = () => {
+      if (player.error) {
+        log(`Media Error: code=${player.error.code} - ${player.error.message}`, 'error');
+        // Reiniciar automáticamente el streaming después de un pequeño retraso
+        setTimeout(() => {
+          log('Reiniciando stream automáticamente...', 'info');
+          startStreamSong(currentSong === 'New_Bitch' ? 30 : 30, 'New_Bitch');
+        }, 2000);
+      }
+    };
+
+    socket.on('connect', () => {
+      document.getElementById('status').textContent = 'Estado: Conectado';
+      log('Conectado al servidor: ' + socket.id, 'success');
+    });
+    socket.on('disconnect', () => {
+      document.getElementById('status').textContent = 'Estado: Desconectado';
+      log('Desconectado del servidor', 'error');
+    });
+    socket.on('error', (error) => {
+      log('Error de Socket.IO: ' + error, 'error');
+    });
+
+    socket.on('audioChunk', (data) => {
+      if (!streamingActive) {
+        log('Streaming no activo, chunk ignorado', 'info');
+        return;
+      }
+      if (player.error) {
+        log('El elemento audio ya tiene error, deteniendo el procesamiento de chunks.', 'error');
+        return;
+      }
+      const binary = atob(data.data);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const chunkBuffer = bytes.buffer;
+      if (sourceBuffer && !sourceBuffer.updating) {
+        try {
+          sourceBuffer.appendBuffer(chunkBuffer);
+          log('Chunk añadido al buffer');
+        } catch (err) {
+          log('Error al añadir chunk, se agrega a la cola: ' + err, 'error');
+          queue.push(chunkBuffer);
+        }
+      } else {
+        queue.push(chunkBuffer);
+        log('Chunk en cola para ser añadido');
+      }
+    });
+
+    socket.on('streamComplete', () => {
+      log('Streaming completado desde el servidor', 'success');
+      streamingActive = false;
+      if (bufferCheckInterval) {
+        clearInterval(bufferCheckInterval);
+      }
+      const checkAndEnd = setInterval(() => {
+        if (sourceBuffer && !sourceBuffer.updating) {
+          try {
+            mediaSource.endOfStream();
+            log('MediaSource marcado como ended', 'info');
+          } catch (err) {
+            log('Error al hacer endOfStream: ' + err, 'error');
+          }
+          clearInterval(checkAndEnd);
+        }
+      }, 100);
+    });
+
+    function listBlobs() {
+      log('Solicitando lista de blobs...');
+      socket.emit('listBlobs');
+    }
+    socket.on('blobList', (blobs) => {
+      log('Blobs disponibles:', 'info');
+      blobs.forEach(blob => {
+        log(`- ${blob}`, 'info');
+      });
+    });
+
+    function initMediaSource() {
+      queue = [];
+      hasStartedPlaying = false;
+      mediaSource = new MediaSource();
+      mediaSourceURL = URL.createObjectURL(mediaSource);
+      player.src = mediaSourceURL;
+      mediaSource.addEventListener('sourceopen', onSourceOpen);
+    }
+
+    function onSourceOpen() {
+      log('MediaSource abierto', 'info');
+      try {
+        sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+      } catch (err) {
+        log('Error al crear SourceBuffer: ' + err, 'error');
+        return;
+      }
+      sourceBuffer.addEventListener('updateend', () => {
+        // Iniciar la reproducción solo cuando el buffer acumulado supere el umbral
+        if (!hasStartedPlaying) {
+          const buffered = player.buffered;
+          if (buffered.length > 0) {
+            const bufferedSeconds = buffered.end(0) - buffered.start(0);
+            if (bufferedSeconds >= MIN_BUFFERED_SECONDS) {
+              hasStartedPlaying = true;
+              player.play().catch((err) => {
+                log('El navegador bloqueó la reproducción automática: ' + err, 'error');
+              });
+              log('Reproducción iniciada con ' + bufferedSeconds.toFixed(2) + ' segundos buffer', 'info');
+              if (bufferCheckInterval) clearInterval(bufferCheckInterval);
+            } else {
+              log('Esperando a acumular ' + MIN_BUFFERED_SECONDS + 's. Actualmente: ' + bufferedSeconds.toFixed(2) + 's', 'info');
+            }
+          }
+        }
+        while (queue.length > 0 && !sourceBuffer.updating) {
+          try {
+            const nextChunk = queue.shift();
+            sourceBuffer.appendBuffer(nextChunk);
+          } catch (err) {
+            log('Error al reintentar appendBuffer: ' + err, 'error');
+            queue.unshift(nextChunk);
+            break;
+          }
+        }
+      });
+      sourceBuffer.addEventListener('error', (e) => {
+        log('Error en el SourceBuffer: ' + e, 'error');
+        stopCurrentStream();
+      });
+      // Establecer un intervalo para chequear el buffer si no se inició la reproducción aún
+      if (!bufferCheckInterval) {
+        bufferCheckInterval = setInterval(() => {
+          if (!hasStartedPlaying) {
+            const buffered = player.buffered;
+            if (buffered.length > 0) {
+              const bufferedSeconds = buffered.end(0) - buffered.start(0);
+              if (bufferedSeconds >= MIN_BUFFERED_SECONDS) {
+                hasStartedPlaying = true;
+                player.play().catch((err) => {
+                  log('El navegador bloqueó la reproducción automática: ' + err, 'error');
+                });
+                log('Reproducción iniciada con ' + bufferedSeconds.toFixed(2) + ' segundos buffer', 'info');
+                clearInterval(bufferCheckInterval);
+                bufferCheckInterval = null;
+              }
+            }
+          }
+        }, 250);
+      }
+    }
+
+    async function fetchSongDuration(songId) {
+      const url = `http://localhost:3000/api/getSongLength?songId=${songId}`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('No se pudo obtener la duración de la canción');
+        const data = await res.json();
+        return data.duration;
+      } catch (error) {
+        log('Error al obtener la duración de la canción: ' + error, 'error');
+        return 0;
+      }
+    }
+
+    function stopCurrentStream() {
+      if (streamingActive) {
+        log('Deteniendo streaming anterior...', 'info');
+      }
+      streamingActive = false;
+      if (bufferCheckInterval) {
+        clearInterval(bufferCheckInterval);
+        bufferCheckInterval = null;
+      }
+      if (mediaSource && mediaSource.readyState === 'open') {
+        try {
+          if (sourceBuffer && !sourceBuffer.updating) {
+            sourceBuffer.abort();
+          }
+        } catch (err) {
+          log('Error al abortar SourceBuffer: ' + err, 'error');
+        }
+        try {
+          mediaSource.endOfStream();
+        } catch (err) {
+          log('Error al hacer endOfStream: ' + err, 'error');
+        }
+      }
+      if (player.src) {
+        URL.revokeObjectURL(player.src);
+      }
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
+      mediaSource = null;
+      mediaSourceURL = null;
+      sourceBuffer = null;
+      queue = [];
+      hasStartedPlaying = false;
+    }
+
+    async function startStreamSong(songId, songName) {
+      stopCurrentStream();
+      currentSong = songName;
+      streamingActive = true;
+      expectedDuration = await fetchSongDuration(songId);
+      initMediaSource();
+      log(`Solicitando inicio de streaming para la canción '${songName}' (ID ${songId})...`);
+      socket.emit('startStream', { songId });
+    }
+  </script>
+</body>
+</html>

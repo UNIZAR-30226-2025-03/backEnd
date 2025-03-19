@@ -753,4 +753,17 @@ export class PlaylistsService {
   
       return songName ? songName.Nombre : null;
     }
+
+        /**
+    * Obtiene el nombre de una canción por su ID.
+   */
+      async getSongLength(songId: number): Promise<number> {
+
+        // Busca los datos de la canción
+        const songName = await this.prisma.cancion.findUnique({
+          where: { Id: songId },
+        });
+      
+          return songName ? songName.Duracion : 0;
+        }
 }

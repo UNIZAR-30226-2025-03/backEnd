@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Delete, Param, Body, UploadedFile, UseInterceptors, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, UploadedFile, UseInterceptors, HttpCode, HttpStatus, NotFoundException, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PlaylistsService } from './playlists.service';
+import { ApiParam } from '@nestjs/swagger';
+
 
 @ApiTags('Playlist')
 @Controller('playlists')
@@ -276,4 +278,15 @@ export class PlaylistsController {
   ) {
     return await this.playlistsService.updatePlaylistPhoto(Number(idLista), file, input.userEmail);
   }
+
+  @ApiOperation({ summary: 'Obtener duración de la canción a partir de su id' })
+  @ApiResponse({ status: 200, description: 'Duración de la canción.', type: Number })
+  @ApiResponse({ status: 404, description: 'Canción no encontrada.' })
+  @ApiParam({ name: 'idSong', type: Number, description: 'Identificador de la canción' })
+  @Get(':idSong')
+  @HttpCode(HttpStatus.OK)
+  async getSongLength(@Param('idSong', ParseIntPipe) idSong: number): Promise<number> {
+    return this.playlistsService.getSongLength(idSong);
+  }
+  
 }
