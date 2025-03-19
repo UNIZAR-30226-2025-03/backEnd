@@ -288,5 +288,24 @@ export class PlaylistsController {
   async getSongLength(@Param('idSong', ParseIntPipe) idSong: number): Promise<number> {
     return this.playlistsService.getSongLength(idSong);
   }
+
+  @ApiOperation({ summary: 'Obtener listas liked por un usuario' })
+  @ApiResponse({
+    status: 200,
+    description: 'Listas liked por el usuario',
+  })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  @Get('liked/:email') // Esta ruta recibe un `email` como parámetro
+  async getLikedLists(@Param('email') email: string) {
+    // Llamamos al servicio para obtener las listas liked por el usuario
+    const likedLists = await this.playlistsService.getLikedListsByUser(email);
+
+    // Si no encontramos listas, lanzamos una excepción
+    if (!likedLists.length) {
+      throw new Error('No se encontraron listas liked para este usuario');
+    }
+
+    return likedLists;
+  }
   
 }

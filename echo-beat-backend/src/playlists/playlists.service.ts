@@ -775,4 +775,22 @@ export class PlaylistsService {
 
     return songName ? songName.Duracion : 0;
   }
+
+  /**
+   * Obtiene las listas a las que un determinado usuario le ha dado like.
+   */
+  async getLikedListsByUser(email: string) {
+    // Consultamos las listas que un usuario ha likeado
+    const likedLists = await this.prisma.like.findMany({
+      where: {
+        EmailUsuario: email, // Filtramos por el email del usuario
+        tieneLike: true,      // Solo nos interesa aquellas donde tieneLike es verdadero
+      },
+      include: {
+        lista: true,          // Incluimos la lista completa con todos los datos
+      },
+    });
+
+    return likedLists.map((like) => like.lista); // Devolvemos solo las listas
+  }
 }

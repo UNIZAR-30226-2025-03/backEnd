@@ -134,8 +134,8 @@ export class AuthService {
             displayName || "Usuario de Google", // 🔹 Nombre Completo
             "", // 🔹 Contraseña (No es necesaria)
             newNick, // 🔹 Nickname generado
-            null // 🔹 Fecha de Nacimiento (se deja en null)
-        );
+            new Date('2000-01-01') // 🔹 Fecha de Nacimiento por defecto
+          );
     }
 
     return user;
