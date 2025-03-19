@@ -515,10 +515,13 @@ export class PlaylistsService {
     });
 
     // 🔹 9️⃣ Actualizar el número de canciones y la duración total
-    const totalSongs = positionSongs.length; // Total de canciones en la playlist
+    let totalSongs = positionSongs.length;
+    let totalDuration = 0;
 
-    // Calcular la duración total sumando la duración de todas las canciones
-    const totalDuration = positionSongs.reduce((sum, { cancion }) => sum + (cancion.Duracion || 0), 0);
+    if (totalSongs > 0) {
+      // Si hay canciones, calculamos la duración total
+      totalDuration = positionSongs.reduce((sum, { cancion }) => sum + (cancion.Duracion || 0), 0);
+    }
 
     // Actualizamos los campos NumCanciones y Duracion de la tabla Lista
     await this.prisma.lista.update({
@@ -741,29 +744,29 @@ export class PlaylistsService {
   }
 
 
-    /**
-    * Obtiene el nombre de una canción por su ID.
-   */
-    async getSongName(songId: number): Promise<string | null> {
+  /**
+  * Obtiene el nombre de una canción por su ID.
+ */
+  async getSongName(songId: number): Promise<string | null> {
 
-      // Busca los datos de la canción
-      const songName = await this.prisma.cancion.findUnique({
-        where: { Id: songId },
-      });
-  
-      return songName ? songName.Nombre : null;
-    }
+    // Busca los datos de la canción
+    const songName = await this.prisma.cancion.findUnique({
+      where: { Id: songId },
+    });
 
-        /**
-    * Obtiene el nombre de una canción por su ID.
-   */
-      async getSongLength(songId: number): Promise<number> {
+    return songName ? songName.Nombre : null;
+  }
 
-        // Busca los datos de la canción
-        const songName = await this.prisma.cancion.findUnique({
-          where: { Id: songId },
-        });
-      
-          return songName ? songName.Duracion : 0;
-        }
+  /**
+* Obtiene el nombre de una canción por su ID.
+*/
+  async getSongLength(songId: number): Promise<number> {
+
+    // Busca los datos de la canción
+    const songName = await this.prisma.cancion.findUnique({
+      where: { Id: songId },
+    });
+
+    return songName ? songName.Duracion : 0;
+  }
 }

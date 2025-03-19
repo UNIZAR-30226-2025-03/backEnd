@@ -124,7 +124,7 @@ export class UsersController {
     schema: {
       type: 'object',
       properties: {
-        emailUsuario: { type: 'string', example: 'any@example.com' },
+        Email: { type: 'string', example: 'any@example.com' },
         file: { type: 'string', format: 'binary' },
       },
     },
