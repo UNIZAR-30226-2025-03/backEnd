@@ -300,12 +300,42 @@ export class PlaylistsController {
     // Llamamos al servicio para obtener las listas liked por el usuario
     const likedLists = await this.playlistsService.getLikedListsByUser(email);
 
-    // Si no encontramos listas, lanzamos una excepción
+    // Si no encontramos listas liked, lanzamos una excepción NotFoundException
     if (!likedLists.length) {
-      throw new Error('No se encontraron listas liked para este usuario');
+      throw new NotFoundException('No se encontraron listas liked para este usuario');
     }
 
     return likedLists;
+  }
+
+  @ApiOperation({ summary: 'Dar like a una lista de reproducción' })
+  @ApiResponse({
+    status: 200,
+    description: 'Like agregado a la lista correctamente.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Lista no encontrada o usuario no registrado.',
+  })
+  @Post('like/:email/:idLista')
+  async addLike(@Param('email') email: string, @Param('idLista') idLista: number) {
+    const likeResponse = await this.playlistsService.addLikeToPlaylist(email, idLista);
+    return likeResponse;
+  }
+
+  @ApiOperation({ summary: 'Quitar like de una lista de reproducción' })
+  @ApiResponse({
+    status: 200,
+    description: 'Like quitado de la lista correctamente.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Lista no encontrada o usuario no registrado.',
+  })
+  @Delete('like/:email/:idLista')
+  async removeLike(@Param('email') email: string, @Param('idLista') idLista: number) {
+    const removeResponse = await this.playlistsService.removeLikeFromPlaylist(email, idLista);
+    return removeResponse;
   }
   
 }
