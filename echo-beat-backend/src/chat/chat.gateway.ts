@@ -37,6 +37,7 @@ export class ChatGateway {
     @MessageBody() { senderId, receiverId, content }: { senderId: string; receiverId: string; content: string }
   ) {
     try {
+      // Guardar mensaje en la base de datos
       const message = await this.chatService.saveMessage(senderId, receiverId, content);
       
       // Enviar mensaje al receptor
