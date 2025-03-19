@@ -16,4 +16,8 @@ export class GoogleAuthService {
     });
     return ticket;
   }
+    async getGoogleTokens(code: string) {
+    const { tokens } = await this.client.getToken(code); // Usamos el `code` para obtener los tokens
+    return tokens; // Esto incluirá `id_token` y `access_token`
+  }
 }

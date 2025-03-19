@@ -167,4 +167,57 @@ export class AuthController {
       throw new UnauthorizedException("Error al autenticar con Google");
     }
   }
+  @ApiOperation({ summary: 'Autenticación con Google usando código de autorización' })
+  @ApiResponse({
+    status: 200,
+    description: 'Autenticación exitosa, devuelve un JWT',
+    schema: {
+      example: {
+        accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        user: {
+          id: "123456",
+          email: "usuario@gmail.com",
+          name: "Usuario Google",
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado: El usuario no tiene cuenta registrada' })
+  @ApiBody({
+    description: 'Código de autorización de Google para obtener el idToken y generar el accessToken',
+    required: true,
+    schema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          example: '4/0AX4XfWiX8XjP9PbiwK3Kvxtswz7mrM42_nNm_0V6obJ...',
+        },
+      },
+    },
+  })
+  @Post('google/code') // Endpoint para recibir el código de Google
+  async googleAuthWithCode(@Body() body: { code: string }) {
+    const { code } = body;
+
+    try {
+      // Intercambiar el `code` por tokens
+      const tokens = await this.googleAuthService.getGoogleTokens(code);
+      
+      if (!tokens.id_token) {
+        throw new UnauthorizedException('Token de Google inválido');
+      }
+
+      // Validar el `id_token` y obtener el usuario
+      const payload = await this.googleAuthService.verifyToken(tokens.id_token);
+      
+      const user = await this.authService.validateGoogleUser(payload);
+
+      // Generar el `accessToken` para el frontend
+      const jwt = await this.authService.loginWithGoogle(user);
+      return { token: jwt.accessToken }; // Mandar el token generado al frontend
+    } catch (error) {
+      throw new UnauthorizedException('Error al autenticar con Google');
+    }
+  }
 }
