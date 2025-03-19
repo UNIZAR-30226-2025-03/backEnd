@@ -128,14 +128,16 @@ export class AuthService {
         // ❌ Si el usuario no existe, lo registramos automáticamente
         const randomId = Math.floor(Math.random() * 100000000) + 1;
         const newNick = `echobeatUser_${randomId}`;
+        const DEFAULT_BIRTHDATE = new Date('2000-01-01');
 
         user = await this.usersService.createUser(
-            email, 
-            displayName || "Usuario de Google", // 🔹 Nombre Completo
-            "", // 🔹 Contraseña (No es necesaria)
-            newNick, // 🔹 Nickname generado
-            new Date('2000-01-01') // 🔹 Fecha de Nacimiento por defecto
-          );
+          email, 
+          displayName || "Usuario de Google", // Nombre Completo
+          "", // Contraseña
+          newNick, // 🔹 Nick ahora va en la posición correcta
+          DEFAULT_BIRTHDATE
+      );
+      
     }
 
     return user;
