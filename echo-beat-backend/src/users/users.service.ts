@@ -109,52 +109,41 @@ export class UsersService {
   }
 
   async getUserFirstSongFromQueue(Email: string) {
-    // 🔹 Obtener el usuario y su ColaReproduccion
     const user = await this.prisma.usuario.findUnique({
-      where: {
-        Email,
-      },
-      select: {
-        ColaReproduccion: true,  // Este es el campo que contiene el JSON con la cola de reproducción
-      },
+      where: { Email },
+      select: { 
+        ColaReproduccion: true,
+        PosicionCola: true
+       },
     });
   
-    if (!user || !Array.isArray(user.ColaReproduccion) || user.ColaReproduccion.length === 0) {
+    if (!user || !user.ColaReproduccion) {
       throw new Error('No se encontró la cola de reproducción del usuario o está vacía.');
     }
   
-    // 🔹 Asegurarse de que cada elemento en la ColaReproduccion tiene la propiedad IdCancion
-    const firstSong = user.ColaReproduccion[0];
+    // Forzamos el tipo de ColaReproduccion para acceder a canciones
+    const cola = user.ColaReproduccion as { canciones: any[] };
   
-    if (typeof firstSong !== 'object' || !firstSong || !('IdCancion' in firstSong)) {
-      throw new Error('La cola de reproducción no tiene un formato esperado.');
+    if (!Array.isArray(cola.canciones) || cola.canciones.length === 0) {
+      throw new Error('No hay canciones en la cola de reproducción.');
+    }
+
+    const posicion = user.PosicionCola ?? 0; // Si es null, lo ponemos en 0 por defecto
+  
+    const firstSong = cola.canciones[posicion];
+  
+    if (!firstSong || typeof firstSong !== 'object' || !('id' in firstSong)) {
+      throw new Error('La primera canción no tiene el formato esperado.');
     }
   
-    // 🔹 Convertir `IdCancion` a número
-    const firstSongId = Number(firstSong.IdCancion);  // Aseguramos que el ID sea un número
-  
-    // 🔹 Verificar si la canción existe
-    const cancion = await this.prisma.cancion.findUnique({
-      where: {
-        Id: firstSongId,  // Ahora pasamos el ID correctamente como número
-      },
-      select: {
-        Nombre: true,
-        Portada: true,
-      },
-    });
-  
-    if (!cancion) {
-      throw new Error('No se encontró la canción en la cola de reproducción.');
-    }
-  
-    // 🔹 Devolver los datos de la primera canción de la cola
     return {
-      PrimeraCancionId: firstSongId,
-      Nombre: cancion.Nombre,
-      Portada: cancion.Portada,
+      PrimeraCancionId: firstSong.id,
+      Nombre: firstSong.nombre,
+      Portada: firstSong.portada,
     };
   }
+  
+  
   
   
 
