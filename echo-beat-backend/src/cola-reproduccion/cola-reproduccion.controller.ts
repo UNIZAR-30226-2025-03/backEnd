@@ -133,4 +133,59 @@ export class ColaReproduccionController {
         return await this.colaReproduccionService.cancionAnterior(userEmail);
     }
 
+    @ApiOperation({ summary: 'Añadir canción a la cola de reproducción después de la posición actual' })
+    @ApiResponse({ status: 200, description: 'Canción añadida a la cola correctamente y se devuelve la nueva cola.' })
+    @ApiResponse({ status: 404, description: 'Usuario o canción no encontrada.' })
+    @ApiResponse({ status: 400, description: 'Cola inválida o datos incorrectos.' })
+    @ApiBody({
+        description: 'Parámetros necesarios para añadir una canción a la cola',
+        schema: {
+            type: 'object',
+            properties: {
+                userEmail: { type: 'string', example: 'user@example.com' },
+                songId: { type: 'number', example: 1 },
+            },
+        },
+    })
+    @Post('add-song-to-queue')
+    async addSongToQueue(
+        @Body() body: { userEmail: string; songId: number },
+    ) {
+        const result = await this.colaReproduccionService.addSongToQueue(body.userEmail, body.songId);
+
+        return {
+            message: 'Canción añadida correctamente',
+            nuevaCola: result,
+        };
+    }
+
+    @ApiOperation({
+        summary: 'Eliminar una canción de la cola de reproducción en una posición dada',
+        description: 'Elimina la canción en la posición indicada y ajusta las posiciones de las canciones restantes.',
+    })
+    @ApiResponse({ status: 200, description: 'Canción eliminada correctamente y nueva cola devuelta.' })
+    @ApiResponse({ status: 400, description: 'Datos inválidos o posición fuera de rango.' })
+    @ApiResponse({ status: 404, description: 'Usuario o cola de reproducción no encontrada.' })
+    @ApiBody({
+        description: 'Parámetros necesarios para eliminar una canción de la cola',
+        schema: {
+            type: 'object',
+            properties: {
+                userEmail: { type: 'string', example: 'user@example.com' },
+                posicionCola: { type: 'number', example: 1 },
+            },
+        },
+    })
+    @Post('delete-song-from-queue')
+    async deleteSongFromQueue(
+        @Body() body: { userEmail: string; posicionCola: number },
+    ) {
+        const nuevaCola = await this.colaReproduccionService.deleteSongFromQueue(body.userEmail, body.posicionCola);
+
+        return {
+            message: 'Canción eliminada correctamente',
+            nuevaCola,
+        };
+    }
+
 }

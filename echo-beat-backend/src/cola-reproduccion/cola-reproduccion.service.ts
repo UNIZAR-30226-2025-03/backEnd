@@ -213,4 +213,96 @@ export class ColaReproduccionService {
         };
     }
 
+    async addSongToQueue(userEmail: string, songId: number) {
+        // Verificamos si el usuario existe
+        const user = await this.prisma.usuario.findUnique({
+            where: { Email: userEmail },
+            select: { ColaReproduccion: true, PosicionCola: true },
+        });
+
+        if (!user) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+
+        const cola = user.ColaReproduccion as { canciones: any[] };
+        const posicionActual = user.PosicionCola ?? 0;
+
+        if (!cola || !Array.isArray(cola.canciones)) {
+            throw new BadRequestException('Cola de reproducción inválida o vacía');
+        }
+
+        // Verificamos si la canción existe
+        const cancion = await this.prisma.cancion.findUnique({
+            where: { Id: songId },
+            select: {
+                Id: true,
+                Nombre: true,
+                Duracion: true,
+                NumReproducciones: true,
+                NumFavoritos: true,
+                Portada: true,
+            },
+        });
+
+        if (!cancion) {
+            throw new NotFoundException('Canción no encontrada');
+        }
+
+        // Creamos el objeto con el formato esperado
+        const nuevaCancion = {
+            id: cancion.Id,
+            nombre: cancion.Nombre,
+            duracion: cancion.Duracion,
+            numReproducciones: cancion.NumReproducciones,
+            numFavoritos: cancion.NumFavoritos,
+            portada: cancion.Portada,
+        };
+
+        // Insertamos la canción justo después de la posición actual
+        cola.canciones.splice(posicionActual + 1, 0, nuevaCancion);
+
+        // Guardamos la nueva cola en la BD
+        await this.prisma.usuario.update({
+            where: { Email: userEmail },
+            data: {
+                ColaReproduccion: cola,
+            },
+        });
+
+        return cola;
+    }
+
+    async deleteSongFromQueue(userEmail: string, posicionCola: number) {
+        // Obtener el usuario
+        const user = await this.prisma.usuario.findUnique({
+            where: { Email: userEmail },
+            select: {
+                ColaReproduccion: true,
+                PosicionCola: true,
+            },
+        });
+
+        if (!user || !user.ColaReproduccion) {
+            throw new NotFoundException('Usuario no encontrado o no tiene cola de reproducción.');
+        }
+
+        // Verificar que la cola sea un objeto con canciones
+        const cola = user.ColaReproduccion as { canciones: any[] };
+
+        if (!Array.isArray(cola.canciones) || cola.canciones.length <= posicionCola || posicionCola < 0) {
+            throw new BadRequestException('Posición inválida o no existe una canción en esa posición.');
+        }
+
+        // Eliminar la canción de la posición dada
+        cola.canciones.splice(posicionCola, 1);
+
+        // Actualizar la cola de reproducción en la base de datos
+        await this.prisma.usuario.update({
+            where: { Email: userEmail },
+            data: { ColaReproduccion: cola },
+        });
+
+        return cola;
+    }
+
 }
