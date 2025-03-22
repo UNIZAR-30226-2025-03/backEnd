@@ -797,30 +797,30 @@ export class PlaylistsService {
   async addLikeToPlaylist(email: string, idLista: number) {
     // Verificamos si el usuario y la lista existen
     const user = await this.prisma.usuario.findUnique({ where: { Email: email } });
-  
+
     // Convierte idLista a un número entero, aunque debería serlo por defecto
     const playlistId = parseInt(idLista.toString(), 10);  // Asegúrate de que idLista es un número (Int)
-  
+
     if (isNaN(playlistId)) {
       throw new Error('ID de lista inválido');
     }
-  
+
     // Consultamos la lista en Prisma usando el `playlistId` como un número
     const playlist = await this.prisma.lista.findUnique({
       where: {
         Id: playlistId,  // Aquí usamos el playlistId como número
       },
     });
-  
+
     if (!user || !playlist) {
       throw new NotFoundException('Usuario o lista no encontrados');
     }
-  
+
     // Creamos o actualizamos el like en la base de datos
     const like = await this.prisma.like.upsert({
-      where: { 
-        EmailUsuario_IdLista: { 
-          EmailUsuario: email, 
+      where: {
+        EmailUsuario_IdLista: {
+          EmailUsuario: email,
           IdLista: playlistId // Asegúrate de pasar `playlistId` como número aquí también
         }
       },
@@ -831,65 +831,89 @@ export class PlaylistsService {
         tieneLike: true,
       },
     });
-  
+
     // Actualizamos el número de likes de la lista
     await this.prisma.lista.update({
       where: { Id: playlistId },
       data: { NumLikes: { increment: 1 } },
     });
-  
+
     return { message: 'Like agregado a la lista' };
   }
 
   // Función para quitar el like de una lista
-async removeLikeFromPlaylist(email: string, idLista: number) {
-  // Verificamos si el usuario y la lista existen
-  const user = await this.prisma.usuario.findUnique({ where: { Email: email } });
+  async removeLikeFromPlaylist(email: string, idLista: number) {
+    // Verificamos si el usuario y la lista existen
+    const user = await this.prisma.usuario.findUnique({ where: { Email: email } });
 
-  // Convertimos idLista a un número entero
-  const playlistId = parseInt(idLista.toString(), 10);  // Asegurarnos de que idLista sea un número (Int)
+    // Convertimos idLista a un número entero
+    const playlistId = parseInt(idLista.toString(), 10);  // Asegurarnos de que idLista sea un número (Int)
 
-  // Verificamos que la conversión fue exitosa
-  if (isNaN(playlistId)) {
-    throw new Error('ID de lista inválido');
+    // Verificamos que la conversión fue exitosa
+    if (isNaN(playlistId)) {
+      throw new Error('ID de lista inválido');
+    }
+
+    const playlist = await this.prisma.lista.findUnique({
+      where: {
+        Id: playlistId,  // Usamos `playlistId` como un número
+      },
+    });
+
+    if (!user || !playlist) {
+      throw new NotFoundException('Usuario o lista no encontrados');
+    }
+
+    // Verificamos si el like existe
+    const like = await this.prisma.like.findUnique({
+      where: { EmailUsuario_IdLista: { EmailUsuario: email, IdLista: playlistId } }, // Usamos playlistId aquí
+    });
+
+    if (!like) {
+      throw new NotFoundException('No se encontró el like en esta lista');
+    }
+
+    // Eliminamos el like de la base de datos
+    await this.prisma.like.delete({
+      where: { EmailUsuario_IdLista: { EmailUsuario: email, IdLista: playlistId } }, // Usamos playlistId aquí
+    });
+
+    // Actualizamos el número de likes de la lista
+    await this.prisma.lista.update({
+      where: { Id: playlistId },  // Usamos playlistId aquí
+      data: { NumLikes: { decrement: 1 } },
+    });
+
+    return { message: 'Like quitado de la lista' };
   }
 
-  const playlist = await this.prisma.lista.findUnique({
-    where: {
-      Id: playlistId,  // Usamos `playlistId` como un número
-    },
-  });
+  async getSongDetailsWithAuthors(idCancion: number) {
+    // Buscar la canción por su ID
+    const song = await this.prisma.cancion.findUnique({
+      where: { Id: idCancion },
+      select: {
+        Nombre: true,
+        Duracion: true,
+        Portada: true,
+      },
+    });
 
-  if (!user || !playlist) {
-    throw new NotFoundException('Usuario o lista no encontrados');
+    if (!song) {
+      throw new NotFoundException('No se encontró la canción con el ID proporcionado.');
+    }
+
+    // Obtener todos los autores de la canción
+    const authors = await this.prisma.autorCancion.findMany({
+      where: { IdCancion: idCancion },
+      select: { NombreArtista: true },
+    });
+
+    return {
+      Nombre: song.Nombre,
+      Duracion: song.Duracion,
+      Portada: song.Portada,
+      Autores: authors.map(author => author.NombreArtista),
+    };
   }
-
-  // Verificamos si el like existe
-  const like = await this.prisma.like.findUnique({
-    where: { EmailUsuario_IdLista: { EmailUsuario: email, IdLista: playlistId } }, // Usamos playlistId aquí
-  });
-
-  if (!like) {
-    throw new NotFoundException('No se encontró el like en esta lista');
-  }
-
-  // Eliminamos el like de la base de datos
-  await this.prisma.like.delete({
-    where: { EmailUsuario_IdLista: { EmailUsuario: email, IdLista: playlistId } }, // Usamos playlistId aquí
-  });
-
-  // Actualizamos el número de likes de la lista
-  await this.prisma.lista.update({
-    where: { Id: playlistId },  // Usamos playlistId aquí
-    data: { NumLikes: { decrement: 1 } },
-  });
-
-  return { message: 'Like quitado de la lista' };
-}
-
-  
-
-  
-
 
 }

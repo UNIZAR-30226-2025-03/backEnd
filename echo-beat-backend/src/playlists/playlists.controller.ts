@@ -338,4 +338,19 @@ export class PlaylistsController {
     return removeResponse;
   }
   
+  @ApiOperation({ summary: 'Obtener detalles de una canción y sus autores por ID' })
+  @ApiResponse({ status: 200, description: 'Detalles de la canción con sus autores.' })
+  @ApiResponse({ status: 404, description: 'Canción no encontrada o el ID no es válido.' })
+  @Get('song-details/:idCancion')
+  @HttpCode(HttpStatus.OK)
+  async getSongDetailsWithAuthors(@Param('idCancion') idCancion: string) {
+    // Convertimos el parámetro idCancion a número antes de pasarlo al servicio
+    const songId = parseInt(idCancion, 10);
+
+    if (isNaN(songId)) {
+      throw new NotFoundException('El ID de la canción no es válido.');
+    }
+
+    return this.playlistsService.getSongDetailsWithAuthors(songId);
+  }
 }
