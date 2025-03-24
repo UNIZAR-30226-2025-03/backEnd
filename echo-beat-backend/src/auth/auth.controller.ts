@@ -95,7 +95,7 @@ export class AuthController {
       const frontendUrl = 'http://localhost:5173'; // Cambia esto por tu URL real
 
       // 🔹 Redirigir al frontend con el token
-      res.redirect(`${frontendUrl}/auth/callback?token=${jwt.accessToken}email=${req.user.Email}`);
+      res.redirect(`${frontendUrl}/auth/callback?token=${jwt.accessToken}&email=${req.user.Email}`);
     } catch (error) {
       console.error("Error en googleAuthRedirect:", error);
       res.status(500).json({ message: "Error interno en la autenticación con Google" });
