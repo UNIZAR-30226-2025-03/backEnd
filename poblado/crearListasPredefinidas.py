@@ -60,6 +60,13 @@ def crear_listas_predefinidas():
             # Subir imagen a Azure Blob Storage y obtener la URL
             url_portada = subir_imagen_a_blob(nombre_archivo, ruta_archivo)
 
+            # 🔹 ACTUALIZAR campo FotoGenero en la tabla Genero
+            cursor.execute("""
+                UPDATE \"Genero\"
+                SET \"FotoGenero\" = %s
+                WHERE \"NombreGenero\" = %s
+            """, (url_portada, genero))
+
             # Insertar lista predefinida en tabla Lista
             cursor.execute("""
                 INSERT INTO \"Lista\" (\"Nombre\", \"NumCanciones\", \"Duracion\", \"NumLikes\", \"Descripcion\", \"Portada\", \"TipoLista\")
