@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Prueba de Chat WebSocket</title>
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+</head>
+<body>
+  <h2>Cliente de Chat WebSocket</h2>
+
+  <label>Email del usuario actual:</label><br />
+  <input type="text" id="userEmail" placeholder="tu_email@example.com" /><br /><br />
+
+  <label>Email del receptor:</label><br />
+  <input type="text" id="receiverEmail" placeholder="receptor@example.com" /><br /><br />
+
+  <label>Mensaje:</label><br />
+  <input type="text" id="message" placeholder="Escribe tu mensaje" /><br /><br />
+
+  <button onclick="connect()">Conectar</button>
+  <button onclick="sendMessage()">Enviar mensaje</button>
+
+  <h3>Mensajes recibidos:</h3>
+  <ul id="chat"></ul>
+
+  <script>
+    let socket;
+
+    function connect() {
+      const userEmail = document.getElementById("userEmail").value;
+      socket = io("http://localhost:3000");
+
+      socket.on("connect", () => {
+        console.log("Conectado con ID:", socket.id);
+        socket.emit("register", userEmail);
+      });
+
+      socket.on("receiveMessage", (mensaje) => {
+        const chat = document.getElementById("chat");
+        const li = document.createElement("li");
+        li.textContent = `${mensaje.EmailSender}: ${mensaje.Mensaje}`;
+        chat.appendChild(li);
+      });
+
+      socket.on("messageSent", (mensaje) => {
+        const chat = document.getElementById("chat");
+        const li = document.createElement("li");
+        li.textContent = `Tú (enviado): ${mensaje.Mensaje}`;
+        chat.appendChild(li);
+      });
+    }
+
+    function sendMessage() {
+      const senderId = document.getElementById("userEmail").value;
+      const receiverId = document.getElementById("receiverEmail").value;
+      const content = document.getElementById("message").value;
+
+      if (!socket || !socket.connected) {
+        alert("Primero debes conectarte.");
+        return;
+      }
+
+      socket.emit("enviarMensaje", { senderId, receiverId, content });
+      document.getElementById("message").value = "";
+    }
+  </script>
+</body>
+</html>

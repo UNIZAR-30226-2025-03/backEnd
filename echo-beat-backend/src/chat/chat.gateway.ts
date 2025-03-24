@@ -1,52 +1,69 @@
-import { WebSocketGateway, SubscribeMessage, MessageBody, WebSocketServer, ConnectedSocket } from '@nestjs/websockets';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 
-@WebSocketGateway({ cors: true })
-export class ChatGateway {
+@WebSocketGateway({
+  cors: {
+    origin: '*',
+  },
+})
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
   constructor(private readonly chatService: ChatService) {}
 
-  // Unirse a una sala basada en el ID de usuario
-  @SubscribeMessage('joinRoom')
-  async handleJoinRoom(
-    @MessageBody() { userId, friendId }: { userId: string; friendId: string }, 
-    @ConnectedSocket() client: Socket
-  ) {
-    try {
-      // Unirse a la sala de usuario
-      client.join(userId);
+  // Map para rastrear qué usuario está en qué socket
+  private users = new Map<string, string>(); // socketId => userEmail
 
-      // Cargar historial de mensajes previos
-      const messages = await this.chatService.getUnreadMessages(userId);
-      client.emit('loadMessages', messages); 
+  handleConnection(client: Socket) {
+    console.log(`Cliente conectado: ${client.id}`);
+  }
 
-      // Marcar como leídos los mensajes de este chat
-      await this.chatService.markMessagesAsRead(friendId, userId);
-    } catch (error) {
-      console.error('Error en handleJoinRoom:', error);
-      client.emit('error', 'Error al unirse a la sala de chat.');
+  handleDisconnect(client: Socket) {
+    const userEmail = this.users.get(client.id);
+    if (userEmail) {
+      console.log(`Usuario desconectado: ${userEmail}`);
+      this.users.delete(client.id);
     }
   }
 
-  // Enviar mensaje y guardarlo en la base de datos
-  @SubscribeMessage('sendMessage')
-  async handleMessage(
-    @MessageBody() { senderId, receiverId, content }: { senderId: string; receiverId: string; content: string }
-  ) {
-    try {
-      // Guardar mensaje en la base de datos
-      const message = await this.chatService.saveMessage(senderId, receiverId, content);
-      
-      // Enviar mensaje al receptor
-      this.server.to(receiverId).emit('receiveMessage', message);
-
-      return message;
-    } catch (error) {
-      console.error('Error en handleMessage:', error);
-      return { error: 'Error al enviar el mensaje.' };
-    }
+  @SubscribeMessage('register')
+  handleRegister(@MessageBody() userEmail: string, @ConnectedSocket() client: Socket) {
+    this.users.set(client.id, userEmail);
+    client.join(userEmail); // El usuario se une a una "sala" con su email
+    console.log(`Usuario registrado en sala: ${userEmail}`);
   }
+
+  @SubscribeMessage('enviarMensaje')
+  async handleSendMessage(
+    @MessageBody()
+    payload: { senderId: string; receiverId: string; content: string },
+  ) {
+    const { senderId, receiverId, content } = payload;
+
+    // Verificar si el receptor está conectado (unido a su sala)
+    const socketsEnSala = await this.server.in(receiverId).fetchSockets();
+    const receptorConectado = socketsEnSala.length > 0;
+
+    // 1. Guardamos el mensaje en la base de datos
+    const mensajeGuardado = await this.chatService.saveMessage(senderId, receiverId, content, receptorConectado);
+
+    // Emitir el mensaje al receptor si está conectado
+    if (receptorConectado) {
+      this.server.to(receiverId).emit('receiveMessage', mensajeGuardado);
+    }
+
+    // Confirmar al emisor que el mensaje fue enviado
+    this.server.to(senderId).emit('messageSent', mensajeGuardado);
+  }
+
 }
