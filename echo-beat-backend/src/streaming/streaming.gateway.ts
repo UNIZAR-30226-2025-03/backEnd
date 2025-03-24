@@ -80,6 +80,7 @@ export class StreamingGateway {
       console.error('Error al procesar la solicitud de streaming:', error);
       client.emit('error', 'Error al transmitir la canción');
     }
+    //this.playlistsService.incrementSongAlbumAndAuthorPlays(payload.songId);
   }
 
 

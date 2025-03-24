@@ -916,4 +916,47 @@ export class PlaylistsService {
     };
   }
 
+  async incrementSongAlbumAndAuthorPlays(songIdQuizas: number) {
+    // Increment song plays
+    const songId = typeof songIdQuizas === 'string' ? parseInt(songIdQuizas, 10) : songIdQuizas;
+
+    const song = await this.prisma.cancion.update({
+      where: { Id: songId },
+      data: { NumReproducciones: { increment: 1 } },
+      select: { Id: true },
+    });
+    if (!song) throw new NotFoundException('Canción no encontrada');
+
+    const album = await this.prisma.posicionCancion.findMany({
+      where: {
+      IdCancion: songId,
+      lista: { TipoLista: 'Album' },
+      },
+      select: { IdLista: true },
+    });
+    if (!song) throw new NotFoundException('Canción no encontrada');
+
+    await this.prisma.album.update({
+      where: { Id: album[0].IdLista },
+      data: { NumReproducciones: { increment: 1 } },
+      select: { Id: true },
+    });
+    if (!song) throw new NotFoundException('Canción no encontrada');
+
+
+    // Increment author plays
+    const authors = await this.prisma.autorCancion.findMany({
+      where: { IdCancion: song.Id },
+      select: { NombreArtista: true },
+    });
+    for (const autor of authors) {
+      await this.prisma.artista.updateMany({
+        where: { Nombre: autor.NombreArtista },
+        data: { NumOyentesTotales: { increment: 1 } },
+      });
+    }
+
+    return { message: 'Reproducciones actualizadas correctamente' };
+  }
+
 }
