@@ -23,7 +23,7 @@ export class SearchController {
   @ApiQuery({
     name: 'tipo',
     required: false,  // 🔹 Hacemos que 'tipo' sea opcional
-    description: 'Tipo de búsqueda: canciones, artistas, albums, listas',
+    description: 'Tipo de búsqueda: canciones, artistas, albums, playlists',
     type: String,
     example: 'canciones',  // Ejemplo para Swagger
   })

@@ -37,12 +37,13 @@ export class SearchService {
         },
       }) : [],
 
-      listas: tipo === 'listas' || !tipo ? await this.prisma.lista.findMany({
+      listas: tipo === 'playlists' || !tipo ? await this.prisma.listaReproduccion.findMany({
         where: {
           Nombre: {
             contains: query,
             mode: 'insensitive',
           },
+          TipoPrivacidad : 'publico'
         },
       }) : [],
     };
