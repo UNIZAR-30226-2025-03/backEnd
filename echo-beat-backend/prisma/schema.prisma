@@ -139,7 +139,7 @@ model CancionEscuchada {
 }
 
 model CancionEscuchando {
-  EmailUsuario           String
+  EmailUsuario           String @unique
   IdCancion              Int
   MinutoEscucha          Int
 
