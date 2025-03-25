@@ -31,7 +31,7 @@ export class ChatController {
   }
 
   @Get('historialDelChat')
-  @ApiOperation({ summary: 'Obtener el historial de mensajes entre dos usuarios ordenados por fecha descendente' })
+  @ApiOperation({ summary: 'Obtener el historial de mensajes entre dos usuarios ordenados por fecha descendente y marcar los mensajes entre ambos como leidos' })
   @ApiResponse({ status: 200, description: 'Historial del chat recuperado correctamente.' })
   @ApiResponse({ status: 400, description: 'Error al recuperar el historial del chat.' })
   async getChatHistory(

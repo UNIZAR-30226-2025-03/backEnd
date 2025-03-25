@@ -30,11 +30,13 @@
       const userEmail = document.getElementById("userEmail").value;
       socket = io("http://localhost:3000");
 
+      // Evento que se dispara cuando se conecta al servidor
       socket.on("connect", () => {
         console.log("Conectado con ID:", socket.id);
         socket.emit("register", userEmail);
       });
 
+      // Evento que se dispara cuando se recibe un mensaje
       socket.on("receiveMessage", (mensaje) => {
         const chat = document.getElementById("chat");
         const li = document.createElement("li");
@@ -42,6 +44,7 @@
         chat.appendChild(li);
       });
 
+      // Evento que se dispara cuando se envía un mensaje
       socket.on("messageSent", (mensaje) => {
         const chat = document.getElementById("chat");
         const li = document.createElement("li");
@@ -50,6 +53,7 @@
       });
     }
 
+    // Función para enviar un mensaje, llama a la funcion enviarMensaje del gateway, el cual lo registra en la base de datos
     function sendMessage() {
       const senderId = document.getElementById("userEmail").value;
       const receiverId = document.getElementById("receiverEmail").value;

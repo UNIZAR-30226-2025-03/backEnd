@@ -25,7 +25,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private users = new Map<string, string>(); // socketId => userEmail
 
   handleConnection(client: Socket) {
+    const numConexiones = this.server.sockets.sockets.size;
     console.log(`Cliente conectado: ${client.id}`);
+    console.log(`Número total de sockets conectados: ${numConexiones}`);
   }
 
   handleDisconnect(client: Socket) {

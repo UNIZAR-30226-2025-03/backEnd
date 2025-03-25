@@ -569,23 +569,47 @@ export class PlaylistsService {
   }
 
   async getAlbumDetails(idLista: number) {
-    // Buscar en la tabla Album por la IdLista
     const album = await this.prisma.album.findUnique({
       where: {
-        Id: idLista, // Buscar por la ID proporcionada
+        Id: idLista,
       },
-      select: {
-        NumReproducciones: true,
-        FechaLanzamiento: true,
+      include: {
+        lista: {
+          select: {
+            Nombre: true,
+            NumCanciones: true,
+            NumLikes: true,
+            Portada: true,
+          },
+        },
+        autores: {
+          include: {
+            artista: {
+              select: {
+                Nombre: true,
+              },
+            },
+          },
+        },
       },
     });
-
+  
     if (!album) {
       throw new NotFoundException('No se encontró el álbum con la ID proporcionada.');
     }
-
-    return album;
+  
+    return {
+      id: album.Id,
+      nombre: album.lista.Nombre,
+      autor: album.autores.length > 0 ? album.autores[0].artista.Nombre : null,
+      numCanciones: album.lista.NumCanciones,
+      numLikes: album.lista.NumLikes,
+      numReproducciones: album.NumReproducciones,
+      portada: album.lista.Portada,
+      fechaLanzamiento: album.FechaLanzamiento,
+    };
   }
+  
 
   async getPlaylistDetails(idPlaylist: number) {
     // Buscar en la tabla ListaReproduccion por la IdPlaylist
