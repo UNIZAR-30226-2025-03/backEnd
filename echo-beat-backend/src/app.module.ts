@@ -16,12 +16,13 @@ import { AmistadesModule } from './amistades/amistades.module';
 import { ColaReproduccionModule } from './cola-reproduccion/cola-reproduccion.module';
 import { ChatModule } from './chat/chat.module';
 import { CancionModule } from './cancion/cancion.module';
+import { EstadoUsuarioModule } from './estado-usuario/estado-usuario.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true, // Hace que las variables de entorno estén disponibles globalmente
     envFilePath: '.env',
-  }),AuthModule, UsersModule, PlaylistsModule, StreamingModule, SearchModule, PrismaModule, AzureBlobModule, GeneroModule, AmistadesModule, ColaReproduccionModule, ChatModule, CancionModule],
+  }),AuthModule, UsersModule, PlaylistsModule, StreamingModule, SearchModule, PrismaModule, AzureBlobModule, GeneroModule, AmistadesModule, ColaReproduccionModule, ChatModule, CancionModule, EstadoUsuarioModule],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })

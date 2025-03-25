@@ -145,7 +145,7 @@ model CancionEscuchando {
 
   usuario                Usuario  @relation(fields: [EmailUsuario], references: [Email])
   cancion                Cancion  @relation(fields: [IdCancion], references: [Id])
-  @@id([EmailUsuario, IdCancion])
+  @@id([EmailUsuario])
 }
 
 model AutorAlbum {
