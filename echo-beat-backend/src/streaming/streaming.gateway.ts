@@ -39,6 +39,11 @@ export class StreamingGateway {
         client.emit('error', 'No se proporcionó el nombre de la canción');
         return;
       }
+
+      if (!payload.userId) {
+        client.emit('error', 'No se proporcionó el nombre del usario');
+        return;
+      }
       const songName = await this.playlistsService.getSongName(payload.songId);
       if (!songName) {
         client.emit('error', 'No se encontró la canción solicitada');
