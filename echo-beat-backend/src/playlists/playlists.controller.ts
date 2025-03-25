@@ -171,9 +171,9 @@ export class PlaylistsController {
     return this.playlistsService.deleteSongFromPlaylist(input.idLista, input.songId);
   }
 
-  @ApiOperation({ summary: 'Obtener detalles de una playlist a partir de su ID' })
-  @ApiResponse({ status: 200, description: 'Playlist encontrada.', type: Object })
-  @ApiResponse({ status: 404, description: 'Playlist no encontrada.' })
+  @ApiOperation({ summary: 'Obtener detalles de una lista a partir de su ID' })
+  @ApiResponse({ status: 200, description: 'lista encontrada.', type: Object })
+  @ApiResponse({ status: 404, description: 'lista no encontrada.' })
   @Get('lista/:idList')
   @HttpCode(HttpStatus.OK)
   async getListDetails(@Param('idList') idList: string) {
@@ -188,20 +188,36 @@ export class PlaylistsController {
   }
 
   @ApiOperation({ summary: 'Obtener detalles de un álbum a partir de su ID de lista' })
-  @ApiResponse({ status: 200, description: 'Álbum encontrado.', type: Object })
+  @ApiParam({ name: 'idLista', type: Number, description: 'ID de la lista asociada al álbum' })
+  @ApiResponse({
+    status: 200,
+    description: 'Álbum encontrado.',
+    schema: {
+      example: {
+        id: 1,
+        nombre: 'Mi Álbum',
+        autor: 'Nombre del Artista',
+        numCanciones: 10,
+        numLikes: 123,
+        numReproducciones: 4567,
+        portada: 'https://miapp.com/portadas/album1.jpg',
+        fechaLanzamiento: '2025-03-25T12:00:00.000Z'
+      },
+    },
+  })
   @ApiResponse({ status: 404, description: 'Álbum no encontrado.' })
   @Get('album/:idLista')
   @HttpCode(HttpStatus.OK)
   async getAlbumDetails(@Param('idLista') idLista: string) {
-    // Convertir idList a número
-    const ListId = Number(idLista);
+    const listId = Number(idLista);
 
-    if (isNaN(ListId)) {
-      throw new NotFoundException('ID del álbum no es válido.');
+    if (isNaN(listId) || listId <= 0) {
+      throw new NotFoundException('El ID del álbum no es válido.');
     }
 
-    return this.playlistsService.getAlbumDetails(ListId);
+    return this.playlistsService.getAlbumDetails(listId);
   }
+
 
   @ApiOperation({ summary: 'Obtener detalles de una playlist a partir de su ID de playlist' })
   @ApiResponse({ status: 200, description: 'Playlist encontrada.', type: Object })
