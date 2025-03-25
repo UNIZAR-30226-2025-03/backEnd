@@ -16,7 +16,7 @@ export class SearchService {
           },
         },
       }) : [],
-      
+  
       canciones: tipo === 'canciones' || !tipo ? await this.prisma.cancion.findMany({
         where: {
           Nombre: {
@@ -25,7 +25,7 @@ export class SearchService {
           },
         },
       }) : [],
-
+  
       albums: tipo === 'albums' || !tipo ? await this.prisma.album.findMany({
         where: {
           lista: {
@@ -35,19 +35,60 @@ export class SearchService {
             },
           },
         },
-      }) : [],
-
-      listas: tipo === 'playlists' || !tipo ? await this.prisma.listaReproduccion.findMany({
+        include: {
+          lista: {
+            select: {
+              Nombre: true,
+              Portada: true,
+              NumCanciones: true,
+            },
+          },
+          autores: {
+            include: {
+              artista: {
+                select: {
+                  Nombre: true,
+                },
+              },
+            },
+          },
+        },
+      }).then(albums => albums.map(album => ({
+        id: album.Id,
+        nombre: album.lista.Nombre,
+        portada: album.lista.Portada,
+        numCanciones: album.lista.NumCanciones,
+        autor: album.autores.length > 0 ? album.autores[0].artista.Nombre : null, // corregido aquí
+      }))) : [],
+      
+  
+      playlists: tipo === 'playlists' || !tipo ? await this.prisma.listaReproduccion.findMany({
         where: {
           Nombre: {
             contains: query,
             mode: 'insensitive',
           },
-          TipoPrivacidad : 'publico'
+          TipoPrivacidad: 'publico',
         },
-      }) : [],
+        include: {
+          lista: {
+            select: {
+              Id: true,
+              Portada: true,
+              NumLikes: true,
+            },
+          },
+        },
+      }).then(listas => listas.map(lista => ({
+        id: lista.lista.Id,
+        numeroLikes: lista.lista.NumLikes,
+        nombre: lista.Nombre,
+        portada: lista.lista.Portada,
+      }))) : [],
+      
     };
-
+  
     return searchResults;
   }
+  
 }
