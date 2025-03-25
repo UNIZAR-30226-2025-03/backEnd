@@ -5,12 +5,14 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ChatService {
   constructor(private prisma: PrismaService) {}
 
+  //Función para guardar un mensaje en la base de datos
   async saveMessage(senderId: string, receiverId: string, content: string, leido = false) {
     return this.prisma.mensaje.create({
       data: { EmailSender: senderId, EmailReceiver: receiverId, Mensaje: content, Leido: leido },
     });
   }
   
+  //Función para obtener los mensajes no leídos de un usuario
   async getUnreadMessages(receiverId: string) {
     return this.prisma.mensaje.findMany({
       where: {
@@ -21,6 +23,7 @@ export class ChatService {
     });
   }
 
+  //Función para marcar los mensajes entre dos usuarios como leídos, se usara cuando un user acceda al chat con otro user
   async markMessagesAsRead(senderId: string, receiverId: string) {
     return this.prisma.mensaje.updateMany({
       where: {
@@ -32,6 +35,7 @@ export class ChatService {
     });
   }
 
+  //Función para obtener el historial de mensajes entre dos usuarios
   async getChatHistory(userA: string, userB: string) {
     const mensajes = await this.prisma.mensaje.findMany({
       where: {
@@ -50,6 +54,7 @@ export class ChatService {
     }));
   }
   
+  //Función para obtener la lista de chats del usuario, priorizando los que tienen mensajes no leídos
   async getChatListForUser(userEmail: string) {
     const mensajes = await this.prisma.mensaje.findMany({
       where: {
@@ -77,8 +82,8 @@ export class ChatService {
         ? mensaje.EmailReceiver
         : mensaje.EmailSender;
   
+      // Si no existe el chat en el mapa, lo añadimos
       if (!chatsMap.has(contactEmail)) {
-
       const esMensajeNoLeido = !mensaje.Leido && mensaje.EmailReceiver === userEmail;
 
         chatsMap.set(contactEmail, {
@@ -89,7 +94,7 @@ export class ChatService {
         });
       }
   
-      // Si tiene no leídos que el usuario actual ha recibido
+      // Si tiene mensajes no leídos, actualizamos el chat
       if (!mensaje.Leido && mensaje.EmailReceiver === userEmail) {
         const current = chatsMap.get(contactEmail);
         if (current) {
@@ -101,9 +106,11 @@ export class ChatService {
         }
       }
     }
-  
+    
+    // Convertimos el mapa a una lista 
     const chatList = Array.from(chatsMap.values());
   
+    // Ordenar la lista de chats priorizando los no leídos
     return chatList.sort((a, b) => {
       if (!a.Leido && !b.Leido) {
         // Ambos tienen no leídos → ordenar por fecha del no leído más reciente
