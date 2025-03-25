@@ -34,6 +34,9 @@
     let currentSong = "";
     const logElement = document.getElementById('log');
 
+    // Variable para guardar el intervalo que envía el progreso cada 2s
+    let progressInterval = null;
+
     function log(message, type = 'normal') {
       const entry = document.createElement('div');
       entry.textContent = `[${new Date().toISOString().slice(11, 19)}] ${message}`;
@@ -54,6 +57,11 @@
     socket.on('disconnect', () => {
       document.getElementById('status').textContent = 'Estado: Desconectado';
       log('Desconectado del servidor', 'error');
+      // Detenemos el intervalo si había uno en marcha
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
     });
     
     socket.on('error', (error) => {
@@ -85,24 +93,45 @@
       log('Stream completo, reproduciendo audio...', 'success');
       playAudio();
     });
-    
-    function startStreamSong() {
-      log("Solicitando inicio de streaming para la canción 'New_Bitch'...");
-      socket.emit('startStream', { songId: 50, userId: "839316@unizar.es"});
-      audioChunks = [];
-    }
-    
-    function listBlobs() {
-      log('Solicitando lista de blobs...');
-      socket.emit('listBlobs');
-    }
-    
+
+    // Evento para recibir la lista de blobs si la pides
     socket.on('blobList', (blobs) => {
       log('Blobs disponibles:', 'info');
       blobs.forEach(blob => {
         log(`- ${blob}`, 'info');
       });
     });
+    
+    function startStreamSong() {
+      log("Solicitando inicio de streaming para la canción 'New_Bitch'...");
+      socket.emit('startStream', { songId: 50, userId: "839316@unizar.es" });
+      audioChunks = [];
+
+      // Si ya existía un intervalo, lo limpiamos para no duplicarlo
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+
+      // Configuramos un intervalo que, cada 2s, envíe el tiempo actual
+      const player = document.getElementById('player');
+      progressInterval = setInterval(() => {
+        // Enviamos solo si el audio se está reproduciendo
+        if (!player.paused) {
+          const currentTime = Math.floor(player.currentTime);
+          socket.emit('progressUpdate', {
+            userId: "839316@unizar.es",
+            songId: 50,
+            currentTime,
+          });
+          log(`Progreso enviado: ${currentTime} segundos`, 'info');
+        }
+      }, 2000);
+    }
+    
+    function listBlobs() {
+      log('Solicitando lista de blobs...');
+      socket.emit('listBlobs');
+    }
     
     function playAudio() {
       if (audioChunks.length === 0) {

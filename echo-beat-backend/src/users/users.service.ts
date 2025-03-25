@@ -114,7 +114,7 @@ export class UsersService {
       select: { 
         ColaReproduccion: true,
         PosicionCola: true
-       },
+      },
     });
   
     if (!user || !user.ColaReproduccion) {
@@ -127,7 +127,7 @@ export class UsersService {
     if (!Array.isArray(cola.canciones) || cola.canciones.length === 0) {
       throw new Error('No hay canciones en la cola de reproducción.');
     }
-
+  
     const posicion = user.PosicionCola ?? 0; // Si es null, lo ponemos en 0 por defecto
   
     const firstSong = cola.canciones[posicion];
@@ -136,12 +136,28 @@ export class UsersService {
       throw new Error('La primera canción no tiene el formato esperado.');
     }
   
+    // Buscar el minuto en que el usuario está escuchando esta canción
+    const cancionEscuchando = await this.prisma.cancionEscuchando.findUnique({
+      where: { 
+        EmailUsuario: Email  // Usamos solo EmailUsuario como clave primaria
+      },
+      select: {
+        MinutoEscucha: true
+      }
+    });
+  
+    // Si no se encuentra el minuto de escucha, asignar 0
+    const minutoEscucha = cancionEscuchando?.MinutoEscucha ?? 0;
+  
     return {
       PrimeraCancionId: firstSong.id,
       Nombre: firstSong.nombre,
       Portada: firstSong.portada,
+      MinutoEscucha: minutoEscucha,  // Incluimos el minuto de la canción que está escuchando el usuario
     };
   }
+  
+  
   
   
   

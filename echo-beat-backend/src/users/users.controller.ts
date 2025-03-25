@@ -58,19 +58,34 @@ export class UsersController {
     summary: 'Obtener la primera canción de la cola de reproducción de un usuario',
     description: 'Esta API devuelve la primera canción de la cola de reproducción de un usuario.',
   })
-  @ApiResponse({ status: 200, description: 'Canción obtenida correctamente.' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Canción obtenida correctamente.',
+    schema: {
+      example: {
+        PrimeraCancionId: 123,
+        Nombre: 'Nombre de la canción',
+        Portada: 'url-de-la-portada.jpg',
+        MinutoEscucha: 0,
+      },
+    },
+  })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado o cola vacía.' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
   @Get('first-song')
   @HttpCode(HttpStatus.OK)
   async getUserFirstSongFromQueue(@Query('Email') Email: string) {
     try {
-      return await this.usersService.getUserFirstSongFromQueue(Email);
+      // Llamamos al servicio para obtener la primera canción de la cola de reproducción
+      const songData = await this.usersService.getUserFirstSongFromQueue(Email);
+
+      return songData;  // Devolver la información de la canción
     } catch (error) {
       // Manejo específico del error de cola vacía
       if (error.message === 'No se encontró la cola de reproducción del usuario o está vacía.') {
-        throw new NotFoundException(error.message);
+        throw new NotFoundException('Usuario no encontrado o cola vacía.');
       }
+
       // Para otros errores, lanzamos un error genérico del servidor
       throw new Error('Error interno del servidor.');
     }

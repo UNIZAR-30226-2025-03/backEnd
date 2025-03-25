@@ -3,6 +3,7 @@ import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 import { AzureBlobService } from '../azure-blob/azure-blob.service';
 import { PlaylistsService } from '../playlists/playlists.service';
+import { EstadoUsuarioService } from 'src/estado-usuario/estado-usuario.service';
 
 @WebSocketGateway({
   cors: {
@@ -18,7 +19,8 @@ export class StreamingGateway {
 
   constructor(
     private azureBlobService: AzureBlobService,
-    private playlistsService: PlaylistsService
+    private playlistsService: PlaylistsService,
+    private estadoUsuarioService: EstadoUsuarioService
   ) {}
 
 
@@ -30,7 +32,7 @@ export class StreamingGateway {
   
 
   @SubscribeMessage('startStream')
-  async handleStartSong(client: Socket, payload: { songId: number }) {
+  async handleStartSong(client: Socket, payload: { songId: number, userId: string }) {
     console.log('Evento startStream recibido para canción:', payload.songId);
     try {
       if (!payload.songId) {
@@ -80,21 +82,30 @@ export class StreamingGateway {
       console.error('Error al procesar la solicitud de streaming:', error);
       client.emit('error', 'Error al transmitir la canción');
     }
-    //this.playlistsService.incrementSongAlbumAndAuthorPlays(payload.songId);
+    this.playlistsService.incrementSongAlbumAndAuthorPlays(payload.songId);
+    console.log(`se guarda la ulitma cancion`);
+    this.estadoUsuarioService.storeLastSong(payload.userId, payload.songId);
   }
 
 
-  @SubscribeMessage('pauseStream')
-  handlePauseStream(client: Socket) {
-    // Lógica de pausa si aplica
-    client.emit('streamPaused');
+
+  // Evento que recibirá el "currentTime" del cliente
+  @SubscribeMessage('progressUpdate')
+  async handleProgressUpdate(
+    client: Socket,
+    payload: { userId: string; songId: number; currentTime: number }
+  ) {
+    try {
+      // Guardamos (o actualizamos) en la BD el tiempo actual de la canción
+      await this.estadoUsuarioService.updateSongTime(payload.userId, payload.songId, payload.currentTime);
+
+      
+      client.emit('progressSaved', { status: 'ok' });
+    } catch (error) {
+      client.emit('error', 'No se pudo actualizar el progreso');
+    }
   }
 
-  @SubscribeMessage('resumeStream')
-  handleResumeStream(client: Socket) {
-    // Lógica de reanudación si aplica
-    client.emit('streamResumed');
-  }
 
   handleDisconnect(client: Socket) {
     console.log('Cliente desconectado:', client.id);
