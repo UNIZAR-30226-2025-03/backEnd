@@ -14,26 +14,44 @@ export class GeneroService {
    * @param userEmail - Correo electrónico del usuario.
    * @returns Una promesa que resuelve un arreglo de objetos con `NombreGenero` y `FotoGenero`.
    */
-  async getGenerosConFotosByEmail(userEmail: string): Promise<{ NombreGenero: string; FotoGenero: string }[]> {
+  async getGenerosConFotosByEmail(userEmail: string): Promise<{ NombreGenero: string; FotoGenero: string; IdLista: number | null }[]> {
     // Obtener los géneros asociados al usuario
     const preferencias = await this.prisma.preferencia.findMany({
       where: { Email: userEmail },
       select: { NombreGenero: true },
     });
-
-    // Si el usuario no tiene géneros asociados, devolver un array vacío
+  
     if (!preferencias.length) {
       throw new Error(`No se encontraron géneros asociados al usuario con email ${userEmail}`);
     }
-
-    // Obtener las fotos de los géneros consultando la tabla `genero`
+  
     const nombresGeneros = preferencias.map(p => p.NombreGenero);
-    const generosConFotos = await this.prisma.genero.findMany({
-      where: { NombreGenero: { in: nombresGeneros } },
-      select: { NombreGenero: true, FotoGenero: true },
-    });
-
-    return generosConFotos; // Devuelve un array de objetos { NombreGenero, FotoGenero }
+  
+    // Obtener la información del género junto con la lista de reproducción
+    const generosConInfo = await Promise.all(
+      nombresGeneros.map(async (nombreGenero) => {
+        const genero = await this.prisma.genero.findUnique({
+          where: { NombreGenero: nombreGenero },
+          select: { NombreGenero: true, FotoGenero: true },
+        });
+  
+        const lista = await this.prisma.listaReproduccion.findFirst({
+          where: {
+            Nombre: nombreGenero,
+            EmailAutor: 'admin',
+          },
+          select: { Id: true },
+        });
+  
+        return {
+          NombreGenero: genero?.NombreGenero || nombreGenero,
+          FotoGenero: genero?.FotoGenero || '',
+          IdLista: lista?.Id ?? null,
+        };
+      })
+    );
+  
+    return generosConInfo;
   }
 
   async getAllGenerosWithUserSelection(userEmail: string) {
