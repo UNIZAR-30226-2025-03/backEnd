@@ -220,4 +220,59 @@ export class AuthController {
       throw new UnauthorizedException('Error al autenticar con Google');
     }
   }
+  
+
+  // Endpoint para verificar la validez del token
+  @ApiOperation({ summary: 'Verificar si el token JWT es válido' })
+  @ApiResponse({
+    status: 200,
+    description: 'Token válido',
+    schema: {
+      example: {
+        message: "Token válido",
+        user: {
+          id: "123456",
+          email: "usuario@gmail.com",
+        },
+      },
+    },
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Token inválido o caducado',
+    schema: {
+      example: {
+        message: "Token inválido o caducado",
+      },
+    },
+  })
+  @ApiBody({
+    description: 'Token JWT para verificación',
+    required: true,
+    schema: {
+      type: 'object',
+      properties: {
+        token: { 
+          type: 'string', 
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' 
+        },
+      },
+    },
+  })
+  @Post('validate-token')
+  async validateToken(@Body() body: { token: string }) {
+    const { token } = body;
+
+    // Llamamos al servicio para validar el token
+    const result = await this.authService.validateToken(token);
+
+    // Devolvemos la respuesta del servicio
+    if (result.message === 'Token válido') {
+      return result; // Si el token es válido
+    } else {
+      return { message: result.message }; // Si el token es inválido
+    }
+  }
 }
+
+

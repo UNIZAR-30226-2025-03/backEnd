@@ -43,10 +43,15 @@ export class AuthService {
     const tokenPayload = {
       Email: Usuario.Email,
     };
-
-    const accessToken = await this.jwtService.signAsync(tokenPayload); // Firma el token JWT
+  
+    // Firma el token con una caducidad de 1 minuto (60 segundos)
+    const accessToken = await this.jwtService.signAsync(tokenPayload, {
+      expiresIn: '1m', // Esto establece la caducidad a 1 minuto
+    });
+  
     return { accessToken, Email: Usuario.Email }; // Devuelve el token y los datos del Usuario
   }
+  
 
 
   // Genera y envía el token de recuperación al correo
@@ -152,6 +157,26 @@ export class AuthService {
       user: { id: user.id, email: user.email, name: user.name },
     };
   }
+
+  // Función para validar el token
+  async validateToken(token: string) {
+    try {
+      // Verificar el token usando la clave secreta (reemplazar con tu propia clave secreta)
+      const decoded = this.jwtService.verify(token, { secret: process.env.JWT_SECRET});
+
+      // Si el token es válido, devolver los datos decodificados (puedes personalizar esto)
+      return {
+        message: 'Token válido',
+        user: decoded,  // Devuelves los datos del usuario decodificados
+      };
+    } catch (error) {
+      // Si el token es inválido o ha caducado
+      return {
+        message: 'Token inválido o caducado',
+      };
+    }
+  }
+
 
 
 }
