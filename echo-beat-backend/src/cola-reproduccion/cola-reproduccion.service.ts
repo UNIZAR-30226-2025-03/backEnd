@@ -305,4 +305,22 @@ export class ColaReproduccionService {
         return cola;
     }
 
+    // API para vaciar la cola de reproducción de un usuario
+    async clearQueue(userEmail: string) {
+        const user = await this.prisma.usuario.findUnique({
+            where: { Email: userEmail },
+        });
+
+        if (!user) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+
+        // Vaciar el array de canciones en ColaReproduccion
+        await this.prisma.usuario.update({
+            where: { Email: userEmail },
+            data: { ColaReproduccion: { canciones: [] }, PosicionCola: 0 }, // Establecer el array de canciones vacío
+        });
+
+        return { message: 'Cola de reproducción vacía correctamente' };
+    }
 }

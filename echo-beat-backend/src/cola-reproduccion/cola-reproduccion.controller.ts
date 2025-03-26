@@ -188,4 +188,24 @@ export class ColaReproduccionController {
         };
     }
 
+    @ApiOperation({
+        summary: 'Vaciar la cola de reproducción de un usuario',
+        description: 'Esta API vacía el array de canciones de la cola de reproducción de un usuario.',
+    })
+    @ApiResponse({ status: 200, description: 'Cola de reproducción vacía correctamente.' })
+    @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+    @ApiBody({
+        description: 'Datos para vaciar la cola de reproducción',
+        schema: {
+            type: 'object',
+            properties: {
+                userEmail: { type: 'string', example: 'user@example.com' },
+            },
+        },
+    })
+    @Post('clear')
+    @HttpCode(HttpStatus.OK)
+    async clearQueue(@Body() body: { userEmail: string }) {
+        return await this.colaReproduccionService.clearQueue(body.userEmail);
+    }
 }
