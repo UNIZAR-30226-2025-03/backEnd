@@ -116,7 +116,7 @@ export class AmistadesService {
 
   async obtenerAmigos(nick: string) {
     // Buscar todas las amistades donde el usuario es el emisor o el receptor
-    const amigos = await this.prisma.amistad.findMany({
+    const amistades = await this.prisma.amistad.findMany({
       where: {
         OR: [
           { NickFriendSender: nick, EstadoSolicitud: 'aceptada' },
@@ -130,17 +130,37 @@ export class AmistadesService {
     });
 
     // Crear una lista con los nicks de los amigos
-    const listaAmigos = amigos.map((amistad) =>
+    const listaAmigos = amistades.map((amistad) =>
       amistad.NickFriendSender === nick ? amistad.NickFriendReceiver : amistad.NickFriendSender
     );
 
-    // Buscar los usuarios que coincidan con los nicks de la lista
-    return this.prisma.usuario.findMany({
+    const amigos = await this.prisma.usuario.findMany({
       where: { Nick: { in: listaAmigos } },
       select: {
         Nick: true,
+        LinkFoto: true,
         ColaReproduccion: true
       }
+    });
+  
+    return amigos.map((amigo) => {
+      let nombreCancionActual: string | null = null;
+    
+      if (
+        amigo.ColaReproduccion &&
+        typeof amigo.ColaReproduccion === 'object' &&
+        'canciones' in amigo.ColaReproduccion &&
+        Array.isArray((amigo.ColaReproduccion as any).canciones) &&
+        (amigo.ColaReproduccion as any).canciones.length > 0
+      ) {
+        nombreCancionActual = (amigo.ColaReproduccion as any).canciones[0].nombre;
+      }
+    
+      return {
+        Nick: amigo.Nick,
+        LinkFoto: amigo.LinkFoto,
+        CancionActual: nombreCancionActual
+      };
     });
   }
 }
