@@ -19,7 +19,7 @@ if not database_url:
     print("Error: No se encontró DATABASE_URL en el archivo .env")
     exit()
 
-RUTA_IMAGENES = "C:\\Users\\jorda\\Downloads\\canciones"
+RUTA_IMAGENES = "C:\\Users\\jorda\\Downloads\\fotoscanciones"
 
 # Codificar correctamente la contraseña si es necesario
 parsed_url = urllib.parse.urlparse(database_url)
@@ -48,7 +48,7 @@ def subir_imagen_a_blob(nombre_archivo, ruta_archivo):
 def insertar_fotos_en_canciones():
     imagenes = sorted(os.listdir(RUTA_IMAGENES))[:100]  # Limitar a 100 imágenes
     with get_db_connection() as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT \"Id\", \"Nombre\" FROM \"Cancion\ ORDER BY \"Id\" DESC LIMIT 100")
+        cursor.execute("SELECT \"Id\", \"Nombre\" FROM \"Cancion\" ORDER BY \"Id\" DESC LIMIT 100")
         canciones = cursor.fetchall()
 
         if len(canciones) != len(imagenes):
