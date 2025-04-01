@@ -80,6 +80,36 @@ export class AmistadesService {
     });
   }
 
+  async rechazarAmistad(nickSender: string, nickReceiver: string) {
+    try {
+      const solicitud = await this.prisma.amistad.findFirst({
+        where: {
+          NickFriendSender: nickSender,
+          NickFriendReceiver: nickReceiver,
+          EstadoSolicitud: 'pendiente', // o el estado que uses para indicar solicitud no aceptada
+        },
+      });
+  
+      if (!solicitud) {
+        throw new Error('No se encontró la solicitud de amistad pendiente.');
+      }
+  
+      await this.prisma.amistad.delete({
+        where: {
+        NickFriendSender_NickFriendReceiver: {
+          NickFriendSender: nickSender,
+          NickFriendReceiver: nickReceiver,
+        },
+      },
+    });
+  
+      return { mensaje: 'Solicitud eliminada correctamente.' };
+    } catch (error) {
+      console.error('❌ Error al eliminar solicitud:', error.message);
+      throw new Error('No se pudo eliminar la solicitud de amistad.');
+    }
+  }
+
   async eliminarAmistad(nickSender: string, nickReceiver: string) {
 
     // Buscar si ya existe una amistad en cualquier dirección

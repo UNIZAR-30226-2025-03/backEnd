@@ -53,6 +53,27 @@ export class AmistadesController {
   }
 
 
+  @ApiOperation({ summary: 'Rechazar solicitud de amistad' })
+  @ApiResponse({ status: 200, description: 'Solicitud rechazada correctamente.' })
+  @ApiBody({
+    description: 'Nick del usuario que envió la solicitud y del que la acepta.',
+    schema: {
+      type: 'object',
+      properties: {
+        nickSender: { type: 'string', example: 'usuario1' },
+        nickReceiver: { type: 'string', example: 'usuario2' }
+      }
+    }
+  })
+  @Post('rechazar')
+  async rechazarAmistad(
+    @Body('nickSender') nickSender: string,
+    @Body('nickReceiver') nickReceiver: string
+  ) {
+    return this.amistadesService.rechazarAmistad(nickSender, nickReceiver);
+  }
+
+
   @ApiOperation({ summary: 'Eliminar amistad' })
   @ApiResponse({ status: 200, description: 'Amistad eliminada correctamente.' })
   @ApiResponse({ status: 404, description: 'No existe una amistad entre estos usuarios.' })
