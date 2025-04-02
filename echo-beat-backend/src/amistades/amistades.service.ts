@@ -138,10 +138,30 @@ export class AmistadesService {
   }
 
   async obtenerSolicitudesAmistad(nickReceiver: string) {
-    return this.prisma.amistad.findMany({
-      where: { NickFriendReceiver: nickReceiver, EstadoSolicitud: 'pendiente' },
-      select: { NickFriendSender: true }
-    });
+    try {
+      const solicitudes = await this.prisma.amistad.findMany({
+        where: {
+          NickFriendReceiver: nickReceiver,
+          EstadoSolicitud: 'pendiente',
+        },
+        select: {
+          NickFriendSender: true,
+          sender: {
+            select: {
+              LinkFoto: true,
+            },
+          },
+        },
+      });
+  
+      return solicitudes.map((solicitud) => ({
+        NickFriendSender: solicitud.NickFriendSender,
+        LinkFoto: solicitud.sender?.LinkFoto || null,
+      }));
+    } catch (error) {
+      console.error('❌ Error al obtener solicitudes:', error.message);
+      throw new Error('No se pudieron obtener las solicitudes de amistad.');
+    }
   }
 
   async obtenerAmigos(nick: string) {

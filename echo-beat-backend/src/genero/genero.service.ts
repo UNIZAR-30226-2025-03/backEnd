@@ -47,6 +47,7 @@ export class GeneroService {
           NombreGenero: genero?.NombreGenero || nombreGenero,
           FotoGenero: genero?.FotoGenero || '',
           IdLista: lista?.Id ?? null,
+          Descripcion: '', // Asegúrate de que la propiedad exista en tu modelo
         };
       })
     );
