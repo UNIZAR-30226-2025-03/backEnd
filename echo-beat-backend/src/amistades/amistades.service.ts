@@ -213,6 +213,7 @@ export class AmistadesService {
     const amigos = await this.prisma.usuario.findMany({
       where: { Nick: { in: listaAmigos } },
       select: {
+        Email: true,
         Nick: true,
         LinkFoto: true,
         ColaReproduccion: true
@@ -233,9 +234,10 @@ export class AmistadesService {
       }
     
       return {
+        Email: amigo.Email,
         Nick: amigo.Nick,
         LinkFoto: amigo.LinkFoto,
-        CancionActual: nombreCancionActual
+        CancionActual: nombreCancionActual,
       };
     });
   }
