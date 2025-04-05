@@ -1,52 +1,76 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AmistadesService {
   constructor(private prisma: PrismaService) {}
 
-  async solicitarAmistad(nickSender: string, nickReceiver: string) {
-    const sender = await this.prisma.usuario.findUnique({ where: { Nick: nickSender } });
-    const receiver = await this.prisma.usuario.findUnique({ where: { Nick: nickReceiver } });
-
-    if (!sender || !receiver) {
-        throw new NotFoundException('Uno o ambos usuarios no existen');
+  async solicitarAmistad(nickSender: string, nickReceiver: string): Promise<any> {
+    if (!nickSender || !nickReceiver) {
+      throw new BadRequestException("Ambos nicks son requeridos");
     }
-
-    // Buscar si ya existe una solicitud en cualquier dirección
-    const existingFriendship = await this.prisma.amistad.findFirst({
-        where: {
+  
+    if (nickSender === nickReceiver) {
+      throw new BadRequestException("No puedes enviarte una solicitud a ti mismo.");
+    }
+  
+    // Verifica que ambos usuarios existan
+    const usuarioSender = await this.prisma.usuario.findUnique({ where: { Nick: nickSender } });
+    const usuarioReceiver = await this.prisma.usuario.findUnique({ where: { Nick: nickReceiver } });
+  
+    if (!usuarioSender || !usuarioReceiver) {
+      throw new NotFoundException("El nick introducido no existe.");
+    }
+  
+    // Verifica si ya existe una amistad en cualquier dirección
+    const amistadExistente = await this.prisma.amistad.findFirst({
+      where: {
         OR: [
-            { NickFriendSender: nickSender, NickFriendReceiver: nickReceiver },
-            { NickFriendSender: nickReceiver, NickFriendReceiver: nickSender }
-        ]
-        }
+          { NickFriendSender: nickSender, NickFriendReceiver: nickReceiver },
+          { NickFriendSender: nickReceiver, NickFriendReceiver: nickSender },
+        ],
+      },
     });
-
-    if (existingFriendship) {
-        // Si ya existe una solicitud, actualizar el estado a "aceptada"
-        return this.prisma.amistad.update({
-        where: {
+  
+    if (amistadExistente) {
+      if (amistadExistente.EstadoSolicitud === "aceptada") {
+        throw new BadRequestException("Ya sois amigos.");
+      }
+  
+      // Si ya existe una solicitud en la dirección opuesta, acéptala automáticamente
+      if (
+        amistadExistente.NickFriendSender === nickReceiver &&
+        amistadExistente.NickFriendReceiver === nickSender &&
+        amistadExistente.EstadoSolicitud === "pendiente"
+      ) {
+        await this.prisma.amistad.update({
+          where: {
             NickFriendSender_NickFriendReceiver: {
-            NickFriendSender: existingFriendship.NickFriendSender,
-            NickFriendReceiver: existingFriendship.NickFriendReceiver
-            }
-        },
-        data: {
-            EstadoSolicitud: 'aceptada',
-            FechaComienzoAmistad: new Date()
-        }
+              NickFriendSender: nickReceiver,
+              NickFriendReceiver: nickSender,
+            },
+          },
+          data: {
+            EstadoSolicitud: "aceptada",
+            FechaComienzoAmistad: new Date(),
+          },
         });
+        return { message: "Solicitud mutua detectada. Amistad aceptada automáticamente." };
+      } else {
+        throw new BadRequestException("Ya existe una solicitud de amistad pendiente.");
+      }
     }
-
-    // Si no existe, crear una nueva solicitud en estado "pendiente"
-    return this.prisma.amistad.create({
-        data: {
+  
+    // Crear nueva solicitud de amistad
+    await this.prisma.amistad.create({
+      data: {
         NickFriendSender: nickSender,
         NickFriendReceiver: nickReceiver,
-        EstadoSolicitud: 'pendiente'
-        }
+        EstadoSolicitud: "pendiente",
+      },
     });
+  
+    return { message: "Solicitud enviada correctamente." };
   }
 
   async aceptarAmistad(nickSender: string, nickReceiver: string) {
@@ -127,7 +151,7 @@ export class AmistadesService {
     }
 
     // Eliminar la amistad
-    return this.prisma.amistad.delete({
+    await this.prisma.amistad.delete({
       where: {
         NickFriendSender_NickFriendReceiver: {
           NickFriendSender: existingFriendship.NickFriendSender,
@@ -135,6 +159,8 @@ export class AmistadesService {
         }
       }
     });
+
+    return { message: `Usuario ${nickReceiver} eliminado con éxito de tu lista de amigos.` };
   }
 
   async obtenerSolicitudesAmistad(nickReceiver: string) {
