@@ -75,6 +75,8 @@ export class ChatService {
       fecha: Date;
       Leido: boolean;
       unreadFecha?: Date;
+      lastMensaje: string;
+      foto: string;
     }>();
   
     for (const mensaje of mensajes) {
@@ -84,13 +86,21 @@ export class ChatService {
   
       // Si no existe el chat en el mapa, lo añadimos
       if (!chatsMap.has(contactEmail)) {
+      // Consulta a la tabla de usuarios para obtener el link de la foto del otro usuario
+      const otherUser = await this.prisma.usuario.findUnique({
+        where: { Email: contactEmail },
+        select: { LinkFoto: true }
+      });  
+
       const esMensajeNoLeido = !mensaje.Leido && mensaje.EmailReceiver === userEmail;
 
         chatsMap.set(contactEmail, {
           contact: contactEmail,
           mensaje: mensaje.Mensaje,
           fecha: mensaje.Fecha,
-          Leido: !esMensajeNoLeido
+          Leido: !esMensajeNoLeido,
+          lastMensaje: mensaje.EmailSender,
+          foto: otherUser?.LinkFoto || '', // Link de la foto del otro usuario
         });
       }
   
