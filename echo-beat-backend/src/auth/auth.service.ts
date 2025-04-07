@@ -6,8 +6,8 @@ import * as nodemailer from 'nodemailer';
 
 
 type AuthInput = { Email: string; Password: string };
-type SignInData = { Email: string };
-type AuthResult = { accessToken: string; Email: string };
+type SignInData = { Email: string, esAdmin: boolean };
+type AuthResult = { accessToken: string; Email: string, esAdmin: boolean };
 
 @Injectable()
 export class AuthService {
@@ -31,8 +31,10 @@ export class AuthService {
     const Usuario = await this.usersService.findUserByEmail(input.Email); // Busca Usuario por nombre
     if (Usuario && (await bcrypt.compare(input.Password, Usuario.Password))) {
       // Compara la contraseña cifrada
+      const esAdmin = await bcrypt.compare(input.Password, process.env.ADMIN_PASSWORD);
       return {
         Email: Usuario.Email,
+        esAdmin: esAdmin,
       };
     }
     return null; // Devuelve null si las credenciales no coinciden
@@ -49,7 +51,7 @@ export class AuthService {
       expiresIn: '1m', // Esto establece la caducidad a 1 minuto
     });
   
-    return { accessToken, Email: Usuario.Email }; // Devuelve el token y los datos del Usuario
+    return { accessToken, Email: Usuario.Email, esAdmin: Usuario.esAdmin }; // Devuelve el token y los datos del Usuario
   }
   
 

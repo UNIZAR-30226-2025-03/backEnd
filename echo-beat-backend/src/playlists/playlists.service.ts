@@ -593,11 +593,11 @@ export class PlaylistsService {
         },
       },
     });
-  
+
     if (!album) {
       throw new NotFoundException('No se encontró el álbum con la ID proporcionada.');
     }
-  
+
     return {
       id: album.Id,
       nombre: album.lista.Nombre,
@@ -609,7 +609,7 @@ export class PlaylistsService {
       fechaLanzamiento: album.FechaLanzamiento,
     };
   }
-  
+
 
   async getPlaylistDetails(idPlaylist: number) {
     // Buscar en la tabla ListaReproduccion por la IdPlaylist
@@ -953,8 +953,8 @@ export class PlaylistsService {
 
     const album = await this.prisma.posicionCancion.findMany({
       where: {
-      IdCancion: songId,
-      lista: { TipoLista: 'Album' },
+        IdCancion: songId,
+        lista: { TipoLista: 'Album' },
       },
       select: { IdLista: true },
     });
@@ -983,4 +983,85 @@ export class PlaylistsService {
     return { message: 'Reproducciones actualizadas correctamente' };
   }
 
+  async reordenarCancionesDePlaylist(idPlaylist: number, cancionesJson: any) {
+    // 🔹 1️⃣ Comprobar que existe la playlist
+    const playlist = await this.prisma.listaReproduccion.findUnique({
+      where: { Id: idPlaylist },
+    });
+
+    if (!playlist) {
+      throw new NotFoundException('La playlist no existe.');
+    }
+
+    // 🔹 2️⃣ Validar el formato del JSON
+    if (!cancionesJson || typeof cancionesJson !== 'object' || !Array.isArray(cancionesJson.canciones)) {
+      throw new BadRequestException('El formato de la cola de reproducción no es válido.');
+    }
+
+    const canciones = cancionesJson.canciones;
+
+    for (const cancion of canciones) {
+      if (
+        typeof cancion.id !== 'number' ||
+        typeof cancion.nombre !== 'string' ||
+        typeof cancion.duracion !== 'number' ||
+        typeof cancion.numReproducciones !== 'number' ||
+        typeof cancion.numFavoritos !== 'number' ||
+        typeof cancion.portada !== 'string'
+      ) {
+        throw new BadRequestException('Una o más canciones tienen un formato inválido.');
+      }
+    }
+    // 🔹 2️⃣ Borrar todas las filas antiguas de PosicionCancion asociadas a la playlist
+    await this.prisma.posicionCancion.deleteMany({
+      where: { IdLista: idPlaylist },
+    });
+
+    // 🔹 3️⃣ Insertar cada canción en la nueva posición
+    for (let i = 0; i < canciones.length; i++) {
+      const cancion = canciones[i];
+      await this.prisma.posicionCancion.create({
+        data: {
+          IdLista: idPlaylist,
+          IdCancion: cancion.id,
+          Posicion: i,
+        },
+      });
+    }
+
+    return {
+      message: 'Orden de canciones actualizado correctamente',
+    };
+  }
+
+  async ordenarCancionesDePlaylist(idPlaylist: number, tipoFiltro: number) {
+    // 1️⃣ Obtener las canciones asociadas a la playlist
+    const cancionesJson = await this.getSongsByListId(String(idPlaylist));
+
+    if (!Array.isArray(cancionesJson.canciones)) {
+      throw new Error('Formato incorrecto de canciones');
+    }
+
+    let canciones = cancionesJson.canciones;
+
+    switch (tipoFiltro) {
+      case 0:
+        // 🔹 Orden predefinido por Posicion en PosicionCancion (ya se supone que vienen ordenadas)
+        break;
+
+      case 1:
+        // 🔹 Orden alfabético por nombre
+        canciones.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        break;
+
+      case 2:
+        // 🔹 Orden por número de reproducciones (descendente)
+        canciones.sort((a, b) => b.numReproducciones - a.numReproducciones);
+        break;
+      default:
+        throw new Error('Tipo de filtro inválido');
+    }
+
+    return { canciones };
+  }
 }

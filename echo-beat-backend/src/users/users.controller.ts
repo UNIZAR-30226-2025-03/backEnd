@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, HttpCode, HttpStatus, UploadedFile, UseInterceptors, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiOperation, ApiResponse, ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiBody, ApiConsumes, ApiQuery } from '@nestjs/swagger';
 import { ConflictException, InternalServerErrorException, NotFoundException, BadRequestException } from '@nestjs/common';
 
 @Controller('users')
@@ -248,5 +248,14 @@ export class UsersController {
   @Get('default-photos')
   async getAllImageUrls() {
     return this.usersService.getAllUserDefaultImageUrls();
+  }
+
+  @Get('profile-with-playlists')
+  @ApiOperation({ summary: 'Obtener perfil de usuario y playlists públicas/protegidas' })
+  @ApiQuery({ name: 'userEmail', required: true, type: String })
+  @ApiResponse({ status: 200, description: 'Perfil y listas obtenidas correctamente.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  async getUserProfileWithPlaylists(@Query('userEmail') userEmail: string) {
+    return this.usersService.getUserProfileWithPublicPlaylists(userEmail);
   }
 }

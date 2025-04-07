@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Delete, Param, Body, UploadedFile, UseInterceptors, HttpCode, HttpStatus, NotFoundException, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { Controller, Get, Post, Delete, Param, Body, UploadedFile, UseInterceptors, HttpCode, HttpStatus, NotFoundException, BadRequestException, ParseIntPipe, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PlaylistsService } from './playlists.service';
 import { ApiParam } from '@nestjs/swagger';
@@ -279,7 +279,7 @@ export class PlaylistsController {
     schema: {
       type: 'object',
       properties: {
-        userEmail: { type: 'string', example: 'user@example.com'},
+        userEmail: { type: 'string', example: 'user@example.com' },
         file: { type: 'string', format: 'binary' },
       },
     },
@@ -353,7 +353,7 @@ export class PlaylistsController {
     const removeResponse = await this.playlistsService.removeLikeFromPlaylist(email, idLista);
     return removeResponse;
   }
-  
+
   @ApiOperation({ summary: 'Obtener detalles de una canción y sus autores por ID' })
   @ApiResponse({ status: 200, description: 'Detalles de la canción con sus autores.' })
   @ApiResponse({ status: 404, description: 'Canción no encontrada o el ID no es válido.' })
@@ -369,4 +369,81 @@ export class PlaylistsController {
 
     return this.playlistsService.getSongDetailsWithAuthors(songId);
   }
+
+
+  @ApiOperation({ summary: 'Reordenar canciones de una playlist' })
+  @ApiResponse({ status: 200, description: 'Orden de canciones actualizado correctamente.' })
+  @ApiResponse({ status: 400, description: 'Formato inválido del JSON.' })
+  @ApiResponse({ status: 404, description: 'La playlist no existe.' })
+  @ApiBody({
+    description: 'ID de la playlist y nuevo orden de canciones',
+    schema: {
+      type: 'object',
+      properties: {
+        idPlaylist: { type: 'number', example: 1 },
+        cancionesJson: {
+          type: 'object',
+          example: {
+            canciones: [
+              {
+                id: 1,
+                nombre: 'Canción 1',
+                duracion: 180,
+                numReproducciones: 20,
+                numFavoritos: 5,
+                portada: 'URL',
+              },
+              {
+                id: 2,
+                nombre: 'Canción 2',
+                duracion: 200,
+                numReproducciones: 15,
+                numFavoritos: 3,
+                portada: 'URL',
+              },
+            ],
+          },
+        },
+      },
+    },
+  })
+  @Post('reordenar-canciones')
+  @HttpCode(HttpStatus.OK)
+  async reordenarCanciones(
+    @Body()
+    body: {
+      idPlaylist: number;
+      cancionesJson: any;
+    },
+  ) {
+    return this.playlistsService.reordenarCancionesDePlaylist(body.idPlaylist, body.cancionesJson);
+  }
+
+  @Get('ordenar-canciones/:idPlaylist/:tipoFiltro')
+  @ApiOperation({
+    summary: 'Obtener canciones de una playlist ordenadas según el filtro',
+    description: `Ordena las canciones de una playlist según el tipo de filtro proporcionado:
+    - 0: Orden por posición original en la playlist
+    - 1: Orden alfabético por nombre
+    - 2: Orden por número de reproducciones (mayor a menor)`,
+  })
+  @ApiParam({ name: 'idPlaylist', type: Number, example: 12, description: 'ID de la playlist' })
+  @ApiParam({
+    name: 'tipoFiltro',
+    type: Number,
+    example: 2,
+    description: `Tipo de filtro:
+    - 0: Orden por posición
+    - 1: Orden por nombre
+    - 2: Orden por reproducciones`,
+  })
+  @ApiResponse({ status: 200, description: 'Canciones ordenadas correctamente.' })
+  @ApiResponse({ status: 400, description: 'Filtro inválido o error de parámetros.' })
+  async ordenarCancionesDePlaylist(
+    @Param('idPlaylist', ParseIntPipe) idPlaylist: number,
+    @Param('tipoFiltro', ParseIntPipe) tipoFiltro: number,
+  ) {
+    return this.playlistsService.ordenarCancionesDePlaylist(idPlaylist, tipoFiltro);
+  }
+  
 }
