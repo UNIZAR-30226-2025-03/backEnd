@@ -197,6 +197,8 @@ def actualizar_listas():
                 
                 num_canciones, duracion_total = cursor.fetchone()
 
+                duracion_total = duracion_total if duracion_total is not None else 0
+
                 # Actualizar la tabla Lista con los nuevos valores
                 cursor.execute("""
                     UPDATE \"Lista\"

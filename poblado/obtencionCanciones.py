@@ -48,10 +48,6 @@ if response.status_code == 200:
         verificar_autores_de_todos_los_albumes()
         print("✅ Verificación de autores completada.")
 
-        print("🔄 Actualizando listas...")
-        actualizar_listas()
-        print("✅ Duracion y numCanciones de las listas actualizadas.")
-
         print("🎶 Insertando generos aleatorios...")
         insertar_generos_aleatorios()
         print("✅ Generos insertados.")
@@ -59,6 +55,10 @@ if response.status_code == 200:
         print("🎵 Creando listas predefinidas...")
         crear_listas_predefinidas()
         print("✅ Listas predefinidas creadas.")
+
+        print("🔄 Actualizando listas...")
+        actualizar_listas()
+        print("✅ Duracion y numCanciones de las listas actualizadas.")
     else:
         print("No se encontraron canciones.")
 else:
