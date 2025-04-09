@@ -73,7 +73,6 @@ export class ChatService {
       mensaje: string;
       fecha: Date;
       Leido: boolean;
-      unreadFecha?: Date;
       lastMensaje: string;
       foto: string;
     }>();
@@ -83,44 +82,32 @@ export class ChatService {
         ? mensaje.EmailReceiver
         : mensaje.EmailSender;
   
-      const esMensajeNoLeido = !mensaje.Leido && mensaje.EmailReceiver === userEmail;
+      // Si ya hemos procesado este chat (contacto), lo saltamos
+      if (chatsMap.has(contactEmail)) continue;
   
-      let current = chatsMap.get(contactEmail);
+      const otherUser = await this.prisma.usuario.findUnique({
+        where: { Email: contactEmail },
+        select: { LinkFoto: true }
+      });
   
-      // Si aún no hay registro en el mapa, lo creamos
-      if (!current) {
-        const otherUser = await this.prisma.usuario.findUnique({
-          where: { Email: contactEmail },
-          select: { LinkFoto: true }
-        });
+      // Leído solo si el último mensaje no es un mensaje no leído recibido
+      const esNoLeido = !mensaje.Leido;
   
-        chatsMap.set(contactEmail, {
-          contact: contactEmail,
-          mensaje: mensaje.Mensaje,
-          fecha: mensaje.Fecha,
-          Leido: true, // por defecto lo marcamos como leído
-          lastMensaje: mensaje.EmailSender,
-          foto: otherUser?.LinkFoto || '',
-        });
-  
-        current = chatsMap.get(contactEmail);
-      }
-  
-      // Si encontramos un mensaje no leído dirigido al usuario actual, actualizamos el estado
-      if (esMensajeNoLeido && current) {
-        current.Leido = false;
-  
-        if (!current.unreadFecha || mensaje.Fecha > current.unreadFecha) {
-          current.unreadFecha = mensaje.Fecha;
-        }
-      }
+      chatsMap.set(contactEmail, {
+        contact: contactEmail,
+        mensaje: mensaje.Mensaje,
+        fecha: mensaje.Fecha,
+        Leido: !esNoLeido,
+        lastMensaje: mensaje.EmailSender,
+        foto: otherUser?.LinkFoto || '',
+      });
     }
   
     const chatList = Array.from(chatsMap.values());
   
     return chatList.sort((a, b) => {
       if (!a.Leido && !b.Leido) {
-        return (b.unreadFecha?.getTime() || 0) - (a.unreadFecha?.getTime() || 0);
+        return b.fecha.getTime() - a.fecha.getTime(); // los dos son no leídos → último primero
       }
       if (!a.Leido) return -1;
       if (!b.Leido) return 1;
