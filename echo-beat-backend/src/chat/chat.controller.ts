@@ -38,7 +38,6 @@ export class ChatController {
     @Query('userPrincipal') userA: string,
     @Query('userAmigo') userB: string,
   ) {
-    await this.chatService.markMessagesAsRead(userB, userA);
     return this.chatService.getChatHistory(userA, userB);
   }
 
