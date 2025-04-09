@@ -3,4 +3,5 @@ export enum TipoBusqueda {
   Artistas = 'artistas',
   Albums = 'albums',
   Playlists = 'playlists',
+  Genero = 'genero',
 }
