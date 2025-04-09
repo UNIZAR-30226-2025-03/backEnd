@@ -68,7 +68,6 @@ export class ChatService {
       },
     });
   
-    // Crear un mapa de chats con la última fecha de mensaje no leído
     const chatsMap = new Map<string, {
       contact: string;
       mensaje: string;
@@ -84,51 +83,47 @@ export class ChatService {
         ? mensaje.EmailReceiver
         : mensaje.EmailSender;
   
-      // Si no existe el chat en el mapa, lo añadimos
-      if (!chatsMap.has(contactEmail)) {
-      // Consulta a la tabla de usuarios para obtener el link de la foto del otro usuario
-      const otherUser = await this.prisma.usuario.findUnique({
-        where: { Email: contactEmail },
-        select: { LinkFoto: true }
-      });  
-
       const esMensajeNoLeido = !mensaje.Leido && mensaje.EmailReceiver === userEmail;
-
+  
+      let current = chatsMap.get(contactEmail);
+  
+      // Si aún no hay registro en el mapa, lo creamos
+      if (!current) {
+        const otherUser = await this.prisma.usuario.findUnique({
+          where: { Email: contactEmail },
+          select: { LinkFoto: true }
+        });
+  
         chatsMap.set(contactEmail, {
           contact: contactEmail,
           mensaje: mensaje.Mensaje,
           fecha: mensaje.Fecha,
-          Leido: !esMensajeNoLeido,
+          Leido: true, // por defecto lo marcamos como leído
           lastMensaje: mensaje.EmailSender,
-          foto: otherUser?.LinkFoto || '', // Link de la foto del otro usuario
+          foto: otherUser?.LinkFoto || '',
         });
+  
+        current = chatsMap.get(contactEmail);
       }
   
-      // Si tiene mensajes no leídos, actualizamos el chat
-      if (!mensaje.Leido && mensaje.EmailReceiver === userEmail) {
-        const current = chatsMap.get(contactEmail);
-        if (current) {
-          current.Leido = false;
-          // Guardamos la fecha del mensaje no leído más reciente
-          if (!current.unreadFecha || mensaje.Fecha > current.unreadFecha) {
-            current.unreadFecha = mensaje.Fecha;
-          }
+      // Si encontramos un mensaje no leído dirigido al usuario actual, actualizamos el estado
+      if (esMensajeNoLeido && current) {
+        current.Leido = false;
+  
+        if (!current.unreadFecha || mensaje.Fecha > current.unreadFecha) {
+          current.unreadFecha = mensaje.Fecha;
         }
       }
     }
-    
-    // Convertimos el mapa a una lista 
+  
     const chatList = Array.from(chatsMap.values());
   
-    // Ordenar la lista de chats priorizando los no leídos
     return chatList.sort((a, b) => {
       if (!a.Leido && !b.Leido) {
-        // Ambos tienen no leídos → ordenar por fecha del no leído más reciente
-        return b.unreadFecha!.getTime() - a.unreadFecha!.getTime();
+        return (b.unreadFecha?.getTime() || 0) - (a.unreadFecha?.getTime() || 0);
       }
-      if (!a.Leido) return -1; // a va primero
-      if (!b.Leido) return 1;  // b va primero
-      // Ninguno tiene no leídos → ordenar por último mensaje general
+      if (!a.Leido) return -1;
+      if (!b.Leido) return 1;
       return b.fecha.getTime() - a.fecha.getTime();
     });
   }
