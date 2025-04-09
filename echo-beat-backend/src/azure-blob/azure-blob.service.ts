@@ -7,7 +7,7 @@ export class AzureBlobService {
   private blobServiceClient: BlobServiceClient;
 
   constructor(private configService: ConfigService) {
-    const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+    const connectionString = this.configService.get<string>('AZURE_STORAGE_CONNECTION_STRING');
     if (!connectionString) {
       throw new Error('Azure Storage connection string is not defined');
     }
