@@ -446,4 +446,64 @@ export class PlaylistsController {
     return this.playlistsService.ordenarCancionesDePlaylist(idPlaylist, tipoFiltro);
   }
   
+
+@ApiOperation({ summary: 'Cambiar el nombre de una playlist' })
+@ApiResponse({ status: 200, description: 'Nombre actualizado correctamente.' })
+@ApiResponse({ status: 400, description: 'Error al actualizar el nombre.' })
+@ApiBody({
+  description: 'Datos para actualizar el nombre',
+  schema: {
+    type: 'object',
+    properties: {
+      userEmail: { type: 'string', example: 'usuario@example.com' },
+      idPlaylist: { type: 'number', example: 1 },
+      nuevoNombre: { type: 'string', example: 'Mis nuevas canciones' },
+    },
+  },
+})
+@Post('update-nombre')
+async actualizarNombrePlaylist(@Body() body: { userEmail: string, idPlaylist: number, nuevoNombre: string }) {
+  return this.playlistsService.updatePlaylistName(body.userEmail, body.idPlaylist, body.nuevoNombre);
+}
+
+
+@ApiOperation({ summary: 'Cambiar la descripción de una playlist' })
+@ApiResponse({ status: 200, description: 'Descripción actualizada correctamente.' })
+@ApiResponse({ status: 400, description: 'Error al actualizar la descripción.' })
+@ApiBody({
+  description: 'Datos para actualizar la descripción',
+  schema: {
+    type: 'object',
+    properties: {
+      userEmail: { type: 'string', example: 'usuario@example.com' },
+      idPlaylist: { type: 'number', example: 1 },
+      nuevaDescripcion: { type: 'string', example: 'Una playlist llena de temazos' },
+    },
+  },
+})
+@Post('update-descripcion')
+async actualizarDescripcionPlaylist(@Body() body: { userEmail: string, idPlaylist: number, nuevaDescripcion: string }) {
+  return this.playlistsService.updatePlaylistDescription(body.userEmail, body.idPlaylist, body.nuevaDescripcion);
+}
+
+
+@ApiOperation({ summary: 'Cambiar la privacidad de una playlist' })
+@ApiResponse({ status: 200, description: 'Privacidad actualizada correctamente.' })
+@ApiResponse({ status: 400, description: 'Error al actualizar la privacidad.' })
+@ApiBody({
+  description: 'Datos para actualizar la privacidad',
+  schema: {
+    type: 'object',
+    properties: {
+      userEmail: { type: 'string', example: 'usuario@example.com' },
+      idPlaylist: { type: 'number', example: 1 },
+      nuevoTipoPrivacidad: { type: 'string', enum: ['publico', 'privado', 'protegido'], example: 'publico' },
+    },
+  },
+})
+@Post('update-privacidad')
+async actualizarPrivacidadPlaylist(@Body() body: { userEmail: string, idPlaylist: number, nuevoTipoPrivacidad: string }) {
+  return this.playlistsService.updatePlaylistPrivacy(body.userEmail, body.idPlaylist, body.nuevoTipoPrivacidad);
+}
+
 }

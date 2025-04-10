@@ -7,20 +7,35 @@ export class CancionService {
 
   async likeSong(email: string, songId: number) {
     try {
-      return await this.prisma.cancionGuardada.create({
+      // 🔹 1️⃣ Guardar la canción en la tabla CancionGuardada
+      const result = await this.prisma.cancionGuardada.create({
         data: {
           EmailUsuario: email,
           IdCancion: songId,
         },
       });
+  
+      // 🔹 2️⃣ Incrementar el número de favoritos de la canción
+      await this.prisma.cancion.update({
+        where: { Id: songId },
+        data: {
+          NumFavoritos: {
+            increment: 1,
+          },
+        },
+      });
+  
+      return result;
     } catch (error) {
       throw new BadRequestException('Error al guardar la canción.');
     }
   }
+  
 
   async unlikeSong(email: string, songId: number) {
     try {
-      return await this.prisma.cancionGuardada.delete({
+      // 🔹 1️⃣ Eliminar la canción de la tabla CancionGuardada
+      const result = await this.prisma.cancionGuardada.delete({
         where: {
           EmailUsuario_IdCancion: {
             EmailUsuario: email,
@@ -28,10 +43,23 @@ export class CancionService {
           },
         },
       });
+  
+      // 🔹 2️⃣ Decrementar el número de favoritos de la canción
+      await this.prisma.cancion.update({
+        where: { Id: songId },
+        data: {
+          NumFavoritos: {
+            decrement: 1,
+          },
+        },
+      });
+  
+      return result;
     } catch (error) {
       throw new BadRequestException('Error al eliminar la canción de favoritos.');
     }
   }
+  
 
   async getUserFavoriteSongs(email: string) {
     try {

@@ -157,45 +157,6 @@ export class UsersService {
     };
   }
 
-
-
-
-
-
-
-  // Nuevo método para obtener UltimaCancionEscuchada y UltimaListaEscuchada
-  async getUserLastPlayedList(Email: string) {
-    const user = await this.prisma.usuario.findUnique({
-      where: {
-        Email,
-      },
-      select: {
-        UltimaListaEscuchada: true,
-      },
-    });
-
-    if (!user) {
-      throw new Error('Usuario no encontrado');
-    }
-
-    const registro = await this.prisma.lista.findUnique({
-      where: {
-        Id: user.UltimaListaEscuchada as number, // Extraído de la consulta anterior
-      },
-      select: {
-        Nombre: true,
-        Portada: true,
-      },
-    });
-
-
-    return {
-      UltimaListaEscuchada: user.UltimaListaEscuchada,
-      Nombre: registro?.Nombre,
-      Portada: registro?.Portada,
-    };
-  }
-
   async getUser(Email: string) {
     const user = await this.prisma.usuario.findUnique({
       where: {

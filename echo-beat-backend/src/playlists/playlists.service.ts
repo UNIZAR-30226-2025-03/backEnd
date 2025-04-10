@@ -1064,4 +1064,68 @@ export class PlaylistsService {
 
     return { canciones };
   }
+
+  async updatePlaylistName(userEmail: string, idPlaylist: number, newName: string) {
+    const playlist = await this.prisma.listaReproduccion.findUnique({
+      where: { Id: idPlaylist },
+    });
+
+    if (!playlist || playlist.EmailAutor !== userEmail) {
+      throw new ForbiddenException('No tienes permiso para modificar esta playlist.');
+    }
+
+    await this.prisma.lista.update({
+      where: { Id: idPlaylist },
+      data: { Nombre: newName },
+    });
+
+    await this.prisma.listaReproduccion.update({
+      where: { Id: idPlaylist },
+      data: { Nombre: newName },
+    });
+  
+
+    return { message: 'Nombre de la playlist actualizado correctamente' };
+  }
+
+  async updatePlaylistDescription(userEmail: string, idPlaylist: number, newDescription: string) {
+    const playlist = await this.prisma.listaReproduccion.findUnique({
+      where: { Id: idPlaylist },
+    });
+
+    if (!playlist || playlist.EmailAutor !== userEmail) {
+      throw new ForbiddenException('No tienes permiso para modificar esta playlist.');
+    }
+
+    await this.prisma.lista.update({
+      where: { Id: idPlaylist },
+      data: { Descripcion: newDescription },
+    });
+
+    return { message: 'Descripción de la playlist actualizada correctamente' };
+  }
+
+  async updatePlaylistPrivacy(userEmail: string, idPlaylist: number, tipoPrivacidad: string) {
+    const tiposValidos = ['publico', 'privado', 'protegido'];
+
+    if (!tiposValidos.includes(tipoPrivacidad)) {
+      throw new BadRequestException('Tipo de privacidad inválido. Debe ser "publico", "privado" o "protegido".');
+    }
+
+    const playlist = await this.prisma.listaReproduccion.findUnique({
+      where: { Id: idPlaylist },
+    });
+
+    if (!playlist || playlist.EmailAutor !== userEmail) {
+      throw new ForbiddenException('No tienes permiso para modificar esta playlist.');
+    }
+
+    await this.prisma.listaReproduccion.update({
+      where: { Id: idPlaylist },
+      data: { TipoPrivacidad: tipoPrivacidad },
+    });
+
+    return { message: 'Privacidad de la playlist actualizada correctamente' };
+  }
+
 }
