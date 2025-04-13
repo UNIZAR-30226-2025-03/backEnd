@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
-// DTOs correspondientes a los del controller
 class CreatePlaylistDto {
   name: string;
   description: string;
@@ -14,17 +13,17 @@ class UpdatePlaylistDto {
   isPublic?: boolean;
 }
 
-const ADMIN_EMAIL = "admin"; 
+const ADMIN_EMAIL = "admin";
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
-
+  constructor(private prisma: PrismaService) { }
   /**
-   * Obtiene todas las listas de reproducción predefinidas (del admin)
+   * Obtiene todas las playlists predefinidas creadas por el administrador.
+   * 
+   * @returns Lista de playlists predefinidas con sus canciones ordenadas.
    */
   async findAllPredefinedPlaylists() {
-    // Buscar todas las listas de reproducción donde el autor es el admin
     const predefinedPlaylists = await this.prisma.listaReproduccion.findMany({
       where: { EmailAutor: ADMIN_EMAIL },
       include: {
@@ -43,7 +42,6 @@ export class AdminService {
       },
     });
 
-    // Transformar los resultados para devolver un formato más amigable
     return predefinedPlaylists.map(playlist => ({
       id: playlist.Id,
       name: playlist.Nombre,
@@ -65,15 +63,17 @@ export class AdminService {
   }
 
   /**
-   * Crea una nueva lista de reproducción predefinida administrada por el sistema
+   * Crea una nueva playlist predefinida con los datos proporcionados.
+   * 
+   * @param createDto - Objeto con nombre, descripción y privacidad de la playlist.
+   * @returns Objeto con los detalles de la playlist creada.
    */
   async createPredefinedPlaylist(createDto: CreatePlaylistDto) {
-    // Primero creamos el registro en la tabla Lista
     const newLista = await this.prisma.lista.create({
       data: {
         Nombre: createDto.name,
         Descripcion: createDto.description,
-        Portada: "https://adminpsoft.blob.core.windows.net/portadaspsoft/default_playlist.jpg", // Imagen por defecto
+        Portada: "https://adminpsoft.blob.core.windows.net/portadaspsoft/default_playlist.jpg",
         TipoLista: "predefinida",
         NumCanciones: 0,
         Duracion: 0,
@@ -81,14 +81,13 @@ export class AdminService {
       }
     });
 
-    // Luego creamos la ListaReproduccion asociada a esa Lista
     const newPlaylist = await this.prisma.listaReproduccion.create({
       data: {
         Id: newLista.Id,
         Nombre: createDto.name,
         TipoPrivacidad: createDto.isPublic ? "publico" : "privado",
-        EmailAutor: ADMIN_EMAIL, // Asignamos el admin como autor
-        Genero: "Variado", // Género por defecto
+        EmailAutor: ADMIN_EMAIL,
+        Genero: "Variado",
       },
       include: {
         lista: true
@@ -106,10 +105,13 @@ export class AdminService {
   }
 
   /**
-   * Actualiza una lista de reproducción predefinida
+   * Actualiza una playlist predefinida existente.
+   * 
+   * @param id - ID de la playlist a actualizar.
+   * @param updateDto - Objeto con los nuevos datos de nombre, descripción o privacidad.
+   * @returns Objeto con los datos actualizados de la playlist.
    */
   async updatePredefinedPlaylist(id: number, updateDto: UpdatePlaylistDto) {
-    // Verificar que la lista existe y pertenece al admin
     const existingPlaylist = await this.prisma.listaReproduccion.findUnique({
       where: { Id: id },
       include: { lista: true }
@@ -119,9 +121,7 @@ export class AdminService {
       throw new NotFoundException(`Lista con ID ${id} no encontrada o no pertenece al administrador`);
     }
 
-    // Actualizar la lista de reproducción y la lista asociada
     const updatedPlaylist = await this.prisma.$transaction(async (tx) => {
-      // Actualizar datos en la tabla Lista
       if (updateDto.name || updateDto.description) {
         await tx.lista.update({
           where: { Id: id },
@@ -132,13 +132,12 @@ export class AdminService {
         });
       }
 
-      // Actualizar datos en ListaReproduccion
       return tx.listaReproduccion.update({
         where: { Id: id },
         data: {
           ...(updateDto.name && { Nombre: updateDto.name }),
-          ...(updateDto.isPublic !== undefined && { 
-            TipoPrivacidad: updateDto.isPublic ? "publico" : "privado" 
+          ...(updateDto.isPublic !== undefined && {
+            TipoPrivacidad: updateDto.isPublic ? "publico" : "privado"
           }),
         },
         include: {
@@ -156,10 +155,12 @@ export class AdminService {
   }
 
   /**
-   * Elimina una lista de reproducción predefinida
+   * Elimina una playlist predefinida y sus canciones asociadas.
+   * 
+   * @param id - ID de la playlist a eliminar.
+   * @returns Mensaje de éxito tras la eliminación.
    */
   async deletePredefinedPlaylist(id: number) {
-    // Verificar que la lista existe y pertenece al admin
     const existingPlaylist = await this.prisma.listaReproduccion.findUnique({
       where: { Id: id }
     });
@@ -168,12 +169,10 @@ export class AdminService {
       throw new NotFoundException(`Lista con ID ${id} no encontrada o no pertenece al administrador`);
     }
 
-    // Eliminamos primero las canciones de la lista
     await this.prisma.posicionCancion.deleteMany({
       where: { IdLista: id }
     });
 
-    // Debido a la relación de cascada, al eliminar la Lista también se elimina ListaReproduccion
     await this.prisma.lista.delete({
       where: { Id: id }
     });
@@ -182,10 +181,13 @@ export class AdminService {
   }
 
   /**
-   * Añade una canción a una lista de reproducción predefinida
+   * Añade una canción a una playlist predefinida del administrador.
+   * 
+   * @param id - ID de la playlist.
+   * @param songId - ID de la canción a añadir.
+   * @returns Detalles de la canción añadida con su nueva posición.
    */
   async addSongToPlaylist(id: number, songId: number) {
-    // Verificar que la lista existe y pertenece al admin
     const existingPlaylist = await this.prisma.listaReproduccion.findUnique({
       where: { Id: id },
       include: { lista: true }
@@ -195,7 +197,6 @@ export class AdminService {
       throw new NotFoundException(`Lista con ID ${id} no encontrada o no pertenece al administrador`);
     }
 
-    // Verificar que la canción existe
     const song = await this.prisma.cancion.findUnique({
       where: { Id: songId }
     });
@@ -204,7 +205,6 @@ export class AdminService {
       throw new NotFoundException(`Canción con ID ${songId} no encontrada`);
     }
 
-    // Verificar si la canción ya está en la lista
     const existingSongInPlaylist = await this.prisma.posicionCancion.findUnique({
       where: {
         IdLista_IdCancion: {
@@ -218,7 +218,6 @@ export class AdminService {
       throw new BadRequestException(`La canción ya está en la lista`);
     }
 
-    // Determinar la próxima posición en la lista
     const lastPosition = await this.prisma.posicionCancion.findFirst({
       where: { IdLista: id },
       orderBy: { Posicion: 'desc' }
@@ -226,9 +225,7 @@ export class AdminService {
 
     const nextPosition = lastPosition ? lastPosition.Posicion + 1 : 1;
 
-    // Añadir la canción a la lista
     const songAdded = await this.prisma.$transaction(async (tx) => {
-      // Añadir la canción con su posición
       const position = await tx.posicionCancion.create({
         data: {
           IdLista: id,
@@ -240,7 +237,6 @@ export class AdminService {
         }
       });
 
-      // Actualizar número de canciones y duración de la lista
       await tx.lista.update({
         where: { Id: id },
         data: {
@@ -264,10 +260,13 @@ export class AdminService {
   }
 
   /**
-   * Elimina una canción de una lista de reproducción predefinida
+   * Elimina una canción de una playlist predefinida.
+   * 
+   * @param id - ID de la playlist.
+   * @param songId - ID de la canción a eliminar.
+   * @returns Mensaje de éxito indicando que la canción fue eliminada.
    */
   async removeSongFromPlaylist(id: number, songId: number) {
-    // Verificar que la lista existe y pertenece al admin
     const existingPlaylist = await this.prisma.listaReproduccion.findUnique({
       where: { Id: id },
       include: { lista: true }
@@ -277,7 +276,6 @@ export class AdminService {
       throw new NotFoundException(`Lista con ID ${id} no encontrada o no pertenece al administrador`);
     }
 
-    // Verificar que la canción está en la lista
     const songInPlaylist = await this.prisma.posicionCancion.findUnique({
       where: {
         IdLista_IdCancion: {
@@ -294,9 +292,7 @@ export class AdminService {
       throw new NotFoundException(`Canción con ID ${songId} no encontrada en la lista`);
     }
 
-    // Eliminar la canción y actualizar la lista
     await this.prisma.$transaction(async (tx) => {
-      // Eliminar la canción de la lista
       await tx.posicionCancion.delete({
         where: {
           IdLista_IdCancion: {
@@ -306,16 +302,14 @@ export class AdminService {
         }
       });
 
-      // Reorganizar las posiciones de las canciones restantes
       const remainingSongs = await tx.posicionCancion.findMany({
-        where: { 
+        where: {
           IdLista: id,
           Posicion: { gt: songInPlaylist.Posicion }
         },
         orderBy: { Posicion: 'asc' }
       });
 
-      // Actualizar posiciones
       for (const song of remainingSongs) {
         await tx.posicionCancion.update({
           where: {
@@ -330,7 +324,6 @@ export class AdminService {
         });
       }
 
-      // Actualizar número de canciones y duración de la lista
       await tx.lista.update({
         where: { Id: id },
         data: {
@@ -340,9 +333,9 @@ export class AdminService {
       });
     });
 
-    return { 
-      success: true, 
-      message: `Canción con ID ${songId} eliminada de la lista ${id}` 
+    return {
+      success: true,
+      message: `Canción con ID ${songId} eliminada de la lista ${id}`
     };
   }
 }

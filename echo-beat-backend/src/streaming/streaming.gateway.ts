@@ -12,25 +12,39 @@ import { EstadoUsuarioService } from 'src/estado-usuario/estado-usuario.service'
 })
 @Injectable()
 export class StreamingGateway {
+
+  /**
+ * Servidor WebSocket
+ */
   @WebSocketServer()
   server: Server;
 
+  /**
+ * Tamaño del chunk en bytes (64 KB) para transmitir el audio por partes.
+ */
   private readonly CHUNK_SIZE = 64 * 1024; // 64KB
 
   constructor(
     private azureBlobService: AzureBlobService,
     private playlistsService: PlaylistsService,
     private estadoUsuarioService: EstadoUsuarioService
-  ) {}
+  ) { }
 
 
 
-
+  /**
+   * Maneja la conexión de un nuevo cliente.
+   * @param client Cliente conectado
+   */
   handleConnection(client: Socket) {
     console.log('Cliente conectado:', client.id);
   }
-  
 
+  /**
+   * Maneja el evento 'startStream', encargado de transmitir una canción en chunks.
+   * @param client Cliente que solicita el streaming
+   * @param payload Objeto que contiene el `songId` y el `userId`
+   */
   @SubscribeMessage('startStream')
   async handleStartSong(client: Socket, payload: { songId: number, userId: string }) {
     console.log('Evento startStream recibido para canción:', payload.songId);
@@ -49,10 +63,8 @@ export class StreamingGateway {
         client.emit('error', 'No se encontró la canción solicitada');
         return;
       }
-      // Se formatea el nombre de la canción reemplazando espacios por guiones bajos
       const formattedSongName = songName.replace(/ /g, '_');
 
-      // Se solicita el stream de Azure Blob usando el nombre de la canción
       console.log('Solicitando stream de Azure para:', formattedSongName);
       const containerName = 'cancionespsoft';
       const nodeStream = await this.azureBlobService.getStream(containerName, `${formattedSongName}.mp3`);
@@ -64,7 +76,6 @@ export class StreamingGateway {
       }
       console.log('Stream de Azure obtenido correctamente');
 
-      // Se envía el stream al cliente en chunks
       let chunkCount = 0;
       nodeStream.on('data', (chunk: Buffer) => {
         chunkCount++;
@@ -94,24 +105,30 @@ export class StreamingGateway {
 
 
 
-  // Evento que recibirá el "currentTime" del cliente
+  /**
+ * Maneja el evento 'progressUpdate' para actualizar el tiempo actual de la canción que el usuario está escuchando.
+ * @param client Cliente que envía el progreso
+ * @param payload Objeto con userId, songId y currentTime en segundos
+ */
   @SubscribeMessage('progressUpdate')
   async handleProgressUpdate(
     client: Socket,
     payload: { userId: string; songId: number; currentTime: number }
   ) {
     try {
-      // Guardamos (o actualizamos) en la BD el tiempo actual de la canción
       await this.estadoUsuarioService.updateSongTime(payload.userId, payload.songId, payload.currentTime);
 
-      
+
       client.emit('progressSaved', { status: 'ok' });
     } catch (error) {
       client.emit('error', 'No se pudo actualizar el progreso');
     }
   }
 
-
+  /**
+   * Maneja la desconexión de un cliente.
+   * @param client Cliente desconectado
+   */
   handleDisconnect(client: Socket) {
     console.log('Cliente desconectado:', client.id);
   }

@@ -5,20 +5,24 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UsersService } from '../users/users.service';
 import { GoogleAuthService } from './google/google-auth.service';
-import { Response } from 'express'; // 🔹 Importa Response de Express
-import { AuthGuard as LocalAuthGuard } from './guards/auth.guard'; // Tu propio guard
-import { AuthGuard as GoogleAuthGuard } from '@nestjs/passport'; // Guard de Passport para Google
-
+import { Response } from 'express';
+import { AuthGuard as GoogleAuthGuard } from '@nestjs/passport';
 
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService,    
-              private readonly googleAuthService: GoogleAuthService,
-              private readonly UsersService: UsersService,
-  ) {}
+  constructor(private authService: AuthService,
+    private readonly googleAuthService: GoogleAuthService,
+    private readonly UsersService: UsersService,
+  ) { }
 
+  /**
+ * Autentica al usuario con su email y contraseña.
+ * 
+ * @param input - Objeto con Email y Password.
+ * @returns Un objeto con el JWT y los datos del usuario.
+ */
   @ApiOperation({ summary: 'Iniciar sesión' })
   @ApiResponse({ status: 200, description: 'Inicio de sesión exitoso.' })
   @ApiResponse({ status: 401, description: 'Credenciales inválidas.' })
@@ -29,17 +33,12 @@ export class AuthController {
     return this.authService.authenticate(input);
   }
 
-  @ApiOperation({ summary: 'Obtener información del usuario autenticado' })
-  @ApiResponse({ status: 200, description: 'Información del usuario obtenida exitosamente.' })
-  @ApiResponse({ status: 401, description: 'Usuario no autenticado.' })
-  @UseGuards(LocalAuthGuard)
-  @Get('me')
-  getUserInfo(@Request() request) {
-    return request.Usuario;
-  }
-  
-
-  
+  /**
+ * Envía un correo para restablecer la contraseña del usuario.
+ * 
+ * @param forgotPasswordDto - DTO con el Email del usuario.
+ * @returns Mensaje de éxito si se envió el correo.
+ */
   @ApiOperation({ summary: 'Solicitar restablecimiento de contraseña' })
   @ApiResponse({ status: 200, description: 'Correo de restablecimiento enviado exitosamente.' })
   @ApiResponse({ status: 400, description: 'Datos inválidos o usuario no encontrado.' })
@@ -49,6 +48,12 @@ export class AuthController {
     return this.authService.sendPasswordResetEmail(forgotPasswordDto.Email);
   }
 
+  /**
+ * Restablece la contraseña del usuario usando un token de recuperación.
+ * 
+ * @param resetPasswordDto - DTO con el token y la nueva contraseña.
+ * @returns Mensaje indicando si el cambio fue exitoso.
+ */
   @ApiOperation({ summary: 'Restablecer contraseña con token' })
   @ApiResponse({ status: 200, description: 'Contraseña restablecida exitosamente.' })
   @ApiResponse({ status: 400, description: 'Token inválido o expirado.' })
@@ -58,17 +63,25 @@ export class AuthController {
     return this.authService.resetPassword(resetPasswordDto.Token, resetPasswordDto.NewPassword);
   }
 
-
-
-
+  /**
+ * Redirige al usuario a Google para iniciar sesión (solo Web).
+ * 
+ * @param req - Objeto de solicitud.
+ */
   @ApiOperation({ summary: 'Redirigir al usuario a Google para autenticación' })
   @ApiResponse({ status: 302, description: 'Redirección a Google' })
   @Get('google')
   @UseGuards(GoogleAuthGuard('google'))
   async googleAuth(@Req() req) {
-    // Esto solo redirige a Google
+    // Redirección a Google
   }
 
+  /**
+ * Callback de Google OAuth que genera un JWT y redirige al frontend.
+ * 
+ * @param req - Objeto de solicitud con datos del usuario.
+ * @param res - Objeto de respuesta.
+ */
   @ApiOperation({ summary: 'Callback de Google después de autenticación' })
   @ApiResponse({
     status: 200,
@@ -91,22 +104,21 @@ export class AuthController {
     try {
       const jwt = await this.authService.loginWithGoogle(req.user);
 
-      // 🔹 Define la URL del frontend manualmente
-      const frontendUrl = 'http://localhost:5173'; // Cambia esto por tu URL real
+      const frontendUrl = 'http://localhost:5173';
 
-      // 🔹 Redirigir al frontend con el token
       res.redirect(`${frontendUrl}/auth/callback?token=${jwt.accessToken}&email=${req.user.Email}`);
     } catch (error) {
       console.error("Error en googleAuthRedirect:", error);
       res.status(500).json({ message: "Error interno en la autenticación con Google" });
     }
-
   }
 
-
-
-
-
+  /**
+ * Inicia sesión con Google en dispositivos móviles utilizando un idToken.
+ * 
+ * @param body - Objeto que contiene el idToken de Google.
+ * @returns Un JWT si la autenticación fue exitosa.
+ */
   @ApiOperation({ summary: 'Inicio de sesión con Google en dispositivos móviles' })
   @ApiResponse({
     status: 200,
@@ -128,9 +140,9 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        idToken: { 
-          type: 'string', 
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' 
+        idToken: {
+          type: 'string',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         },
       },
     },
@@ -140,33 +152,36 @@ export class AuthController {
     const { idToken } = body;
 
     try {
-      // 🔹 Verificar el token con Google
       const ticket = await this.googleAuthService.verifyToken(idToken);
       const payload = ticket.getPayload();
 
       if (!payload) {
         throw new UnauthorizedException("Token de Google inválido");
       }
-      const email = payload?.email; 
+      const email = payload?.email;
       if (!email) {
         throw new UnauthorizedException("El email no está presente en el token de Google.");
       }
 
-      // 🔹 Buscar usuario en la base de datos con el email validado
       const user = await this.UsersService.findUserByEmail(email);
 
 
       if (!user) {
-        // ❌ Si el usuario no existe, rechazamos la autenticación
         throw new UnauthorizedException("No tienes una cuenta registrada. Regístrate primero.");
       }
 
-      // 🔹 Generar un JWT
-      return this.authService.loginWithGoogle(user); 
+      return this.authService.loginWithGoogle(user);
     } catch (error) {
       throw new UnauthorizedException("Error al autenticar con Google");
     }
   }
+
+  /**
+ * Inicia sesión con Google intercambiando un código por un idToken.
+ * 
+ * @param body - Objeto con el código de autorización de Google.
+ * @returns JWT de acceso si la autenticación fue exitosa.
+ */
   @ApiOperation({ summary: 'Autenticación con Google usando código de autorización' })
   @ApiResponse({
     status: 200,
@@ -196,33 +211,34 @@ export class AuthController {
       },
     },
   })
-  @Post('google/code') // Endpoint para recibir el código de Google
+  @Post('google/code')
   async googleAuthWithCode(@Body() body: { code: string }) {
     const { code } = body;
 
     try {
-      // Intercambiar el `code` por tokens
       const tokens = await this.googleAuthService.getGoogleTokens(code);
-      
+
       if (!tokens.id_token) {
         throw new UnauthorizedException('Token de Google inválido');
       }
 
-      // Validar el `id_token` y obtener el usuario
       const payload = await this.googleAuthService.verifyToken(tokens.id_token);
-      
+
       const user = await this.authService.validateGoogleUser(payload);
 
-      // Generar el `accessToken` para el frontend
       const jwt = await this.authService.loginWithGoogle(user);
-      return { token: jwt.accessToken }; // Mandar el token generado al frontend
+      return { token: jwt.accessToken };
     } catch (error) {
       throw new UnauthorizedException('Error al autenticar con Google');
     }
   }
-  
 
-  // Endpoint para verificar la validez del token
+  /**
+   * Verifica si un token JWT es válido.
+   * 
+   * @param body - Objeto que contiene el token JWT.
+   * @returns Mensaje indicando si el token es válido o no.
+   */
   @ApiOperation({ summary: 'Verificar si el token JWT es válido' })
   @ApiResponse({
     status: 200,
@@ -237,8 +253,8 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({ 
-    status: 401, 
+  @ApiResponse({
+    status: 401,
     description: 'Token inválido o caducado',
     schema: {
       example: {
@@ -252,9 +268,9 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        token: { 
-          type: 'string', 
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' 
+        token: {
+          type: 'string',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         },
       },
     },
@@ -263,14 +279,12 @@ export class AuthController {
   async validateToken(@Body() body: { token: string }) {
     const { token } = body;
 
-    // Llamamos al servicio para validar el token
     const result = await this.authService.validateToken(token);
 
-    // Devolvemos la respuesta del servicio
     if (result.message === 'Token válido') {
-      return result; // Si el token es válido
+      return result;
     } else {
-      return { message: result.message }; // Si el token es inválido
+      return { message: result.message };
     }
   }
 }

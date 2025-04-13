@@ -4,10 +4,17 @@ import { BlobServiceClient } from '@azure/storage-blob';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
-
+/**
+ * Servicio que maneja operaciones relacionadas con usuarios.
+ */
 @Injectable()
 export class UsersService {
   private blobServiceClient: BlobServiceClient;
+
+  /**
+ * Constructor del servicio. Inicializa el cliente de Azure Blob Storage.
+ * @param prisma Servicio Prisma para acceso a la base de datos.
+ */
   constructor(private readonly prisma: PrismaService) {
     const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
 
@@ -17,20 +24,26 @@ export class UsersService {
     this.blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
   }
 
-
+  /**
+   * Crea un nuevo usuario en la base de datos.
+   * @param {string} Email - Correo electrónico del usuario.
+   * @param {string} NombreCompleto - Nombre completo del usuario.
+   * @param {string} Password - Contraseña del usuario.
+   * @param {string} Nick - Nickname único del usuario.
+   * @param {Date|null} FechaNacimiento - Fecha de nacimiento del usuario.
+   * @returns {Promise<any>} Usuario creado.
+   */
   async createUser(
     Email: string,
-    NombreCompleto: string, // 🔹 Nuevo campo obligatorio
-    Password: string = "", // 🔹 Si no se pasa, será un string vacío
+    NombreCompleto: string,
+    Password: string = "",
     Nick: string,
     FechaNacimiento: Date | null
   ) {
     if (!Nick) throw new Error("Nick es obligatorio.");
     if (!NombreCompleto) throw new Error("El nombre completo es obligatorio.");
 
-
     try {
-      // 🔹 Verificar si el usuario ya existe (Email o Nick repetido)
       const existingUser = await this.prisma.usuario.findFirst({
         where: {
           OR: [
@@ -44,7 +57,6 @@ export class UsersService {
         throw new ConflictException("El correo o nickname ya están en uso.");
       }
 
-      // 🔹 Cifrar la contraseña si no ha usado google
       if (Password != null) {
         const hashedPassword = await bcrypt.hash(Password, 10);
         Password = hashedPassword;
@@ -53,11 +65,11 @@ export class UsersService {
       if (FechaNacimiento == null) {
         throw new BadRequestException("La fecha de nacimiento es obligatoria.");
       }
-      // 🔹 Crear el usuario
+
       const newUser = await this.prisma.usuario.create({
         data: {
           Email,
-          NombreCompleto, // 🔹 Guardar el nombre completo
+          NombreCompleto,
           Password: Password,
           FechaNacimiento: FechaNacimiento,
           Nick: Nick,
@@ -76,6 +88,11 @@ export class UsersService {
     }
   }
 
+  /**
+ * Busca un usuario por su correo electrónico.
+ * @param {string} Email - Correo del usuario.
+ * @returns {Promise<any>} Usuario encontrado.
+ */
   async findUserByEmail(Email: string) {
     return this.prisma.usuario.findUnique({
       where: {
@@ -84,6 +101,11 @@ export class UsersService {
     });
   }
 
+  /**
+ * Obtiene el nickname de un usuario por su correo.
+ * @param {string} Email - Correo del usuario.
+ * @returns {Promise<{ Nick: string }>} Nickname del usuario.
+ */
   async getUserNick(Email: string) {
     const user = await this.prisma.usuario.findUnique({
       where: {
@@ -101,6 +123,12 @@ export class UsersService {
     return user;
   }
 
+  /**
+   * Actualiza la contraseña de un usuario.
+   * @param {string} Email - Correo del usuario.
+   * @param {string} newPassword - Nueva contraseña ya encriptada.
+   * @returns {Promise<any>} Contraseña actualizada.
+   */
   async updatePassword(Email: string, newPassword: string) {
     return this.prisma.usuario.update({
       where: { Email },
@@ -108,6 +136,11 @@ export class UsersService {
     });
   }
 
+  /**
+ * Obtiene la primera canción en la cola de reproducción del usuario.
+ * @param {string} Email - Correo del usuario.
+ * @returns {Promise<{ PrimeraCancionId: number, Nombre: string, Portada: string, MinutoEscucha: number }>} Datos de la primera canción de la cola.
+ */
   async getUserFirstSongFromQueue(Email: string) {
     const user = await this.prisma.usuario.findUnique({
       where: { Email },
@@ -121,14 +154,13 @@ export class UsersService {
       throw new Error('No se encontró la cola de reproducción del usuario o está vacía.');
     }
 
-    // Forzamos el tipo de ColaReproduccion para acceder a canciones
     const cola = user.ColaReproduccion as { canciones: any[] };
 
     if (!Array.isArray(cola.canciones) || cola.canciones.length === 0) {
       throw new Error('No hay canciones en la cola de reproducción.');
     }
 
-    const posicion = user.PosicionCola ?? 0; // Si es null, lo ponemos en 0 por defecto
+    const posicion = user.PosicionCola ?? 0;
 
     const firstSong = cola.canciones[posicion];
 
@@ -136,27 +168,30 @@ export class UsersService {
       throw new Error('La primera canción no tiene el formato esperado.');
     }
 
-    // Buscar el minuto en que el usuario está escuchando esta canción
     const cancionEscuchando = await this.prisma.cancionEscuchando.findUnique({
       where: {
-        EmailUsuario: Email  // Usamos solo EmailUsuario como clave primaria
+        EmailUsuario: Email
       },
       select: {
         MinutoEscucha: true
       }
     });
 
-    // Si no se encuentra el minuto de escucha, asignar 0
     const minutoEscucha = cancionEscuchando?.MinutoEscucha ?? 0;
 
     return {
       PrimeraCancionId: firstSong.id,
       Nombre: firstSong.nombre,
       Portada: firstSong.portada,
-      MinutoEscucha: minutoEscucha,  // Incluimos el minuto de la canción que está escuchando el usuario
+      MinutoEscucha: minutoEscucha,
     };
   }
 
+  /**
+ * Devuelve la información completa del usuario.
+ * @param {string} Email - Correo del usuario.
+ * @returns {Promise<any>} Información del usuario.
+ */
   async getUser(Email: string) {
     const user = await this.prisma.usuario.findUnique({
       where: {
@@ -171,8 +206,13 @@ export class UsersService {
     return user;
   }
 
+  /**
+   * Actualiza la privacidad del perfil del usuario.
+   * @param {string} Email - Correo del usuario.
+   * @param {string} Privacy - Nueva privacidad ('privado', 'protegido', 'publico').
+   * @returns {Promise<{ message: string, newPrivacy: string }>} Mensaje de confirmación y privacidad actualizada.
+   */
   async updateUserPrivacy(Email: string, Privacy: string) {
-    // Verificar si el nuevo Nick ya está en uso
     const existingUser = await this.prisma.usuario.findUnique({
       where: { Email: Email },
     });
@@ -185,7 +225,6 @@ export class UsersService {
       throw new ConflictException('La privacidad utilizada como parámetro no es correcta.');
     }
 
-    // Actualizar el Nick del usuario
     const updatedUser = await this.prisma.usuario.update({
       where: { Email },
       data: { Privacidad: Privacy },
@@ -197,8 +236,13 @@ export class UsersService {
     };
   }
 
+  /**
+ * Actualiza el nickname del usuario.
+ * @param {string} Email - Correo del usuario.
+ * @param {string} Nick - Nuevo nickname.
+ * @returns {Promise<{ message: string, newNick: string }>} Mensaje de confirmación y NickName actualizado.
+ */
   async updateUserNick(Email: string, Nick: string) {
-    // Verificar si el nuevo Nick ya está en uso
     const existingUser = await this.prisma.usuario.findUnique({
       where: { Nick: Nick },
     });
@@ -207,7 +251,6 @@ export class UsersService {
       throw new ConflictException('El Nick ya está en uso.');
     }
 
-    // Actualizar el Nick del usuario
     const updatedUser = await this.prisma.usuario.update({
       where: { Email },
       data: { Nick: Nick },
@@ -219,6 +262,12 @@ export class UsersService {
     };
   }
 
+  /**
+ * Actualiza la foto de perfil del usuario con una imagen personalizada.
+ * @param {string} userEmail - Correo del usuario.
+ * @param {Express.Multer.File} file - Archivo de imagen subido.
+ * @returns {Promise<{ message: string, newPhotoUrl: string }>} Mensaje de confirmación y Foro de perfil actualizada.
+ */
   async updateUserPhoto(userEmail: string, file: Express.Multer.File) {
     const user = await this.prisma.usuario.findUnique({
       where: { Email: userEmail },
@@ -235,7 +284,6 @@ export class UsersService {
       throw new Error('La variable de entorno CONTAINER_USER_PHOTOS no está definida.');
     }
 
-    // Eliminar la foto anterior si existe
     if (user.LinkFoto) {
       const oldPhotoUrl = user.LinkFoto;
       const oldBlobName = oldPhotoUrl.split('/').pop();
@@ -246,20 +294,16 @@ export class UsersService {
       }
     }
 
-    // Generar un nuevo nombre de archivo único
     const newBlobName = `${uuidv4()}-${file.originalname}`;
 
-    // Subir el archivo a Azure Blob Storage
     const containerClient = this.blobServiceClient.getContainerClient(containerName);
     const blobClient = containerClient.getBlockBlobClient(newBlobName);
     await blobClient.uploadData(file.buffer, {
       blobHTTPHeaders: { blobContentType: file.mimetype },
     });
 
-    // Construir la nueva URL de la foto en Azure Blob Storage
     const uploadedPhotoUrl = `${containerClient.url}/${newBlobName}`;
 
-    // Actualizar la base de datos con la nueva URL
     await this.prisma.usuario.update({
       where: { Email: userEmail },
       data: { LinkFoto: uploadedPhotoUrl },
@@ -268,6 +312,12 @@ export class UsersService {
     return { message: 'Foto actualizada correctamente', newPhotoUrl: uploadedPhotoUrl };
   }
 
+  /**
+ * Actualiza la fecha de nacimiento del usuario.
+ * @param {string} userEmail - Correo del usuario.
+ * @param {string} birthdate - Fecha de nacimiento (en formato ISO).
+ * @returns {Promise<{ message: string, FechaNacimiento: Date }>} Mensaje de confirmación y fecha de nacimiento actualizada.
+ */
   async updateUserBirthdate(userEmail: string, birthdate: string) {
     if (!userEmail || !birthdate) {
       throw new BadRequestException('Email y fecha de nacimiento son requeridos.');
@@ -294,6 +344,12 @@ export class UsersService {
     return { message: 'Fecha de nacimiento actualizada correctamente.', FechaNacimiento: parsedDate };
   }
 
+  /**
+ * Actualiza el nombre completo del usuario.
+ * @param {string} userEmail - Correo del usuario.
+ * @param {string} nombreReal - Nuevo nombre completo.
+ * @returns {Promise<{ message: string, NombreCompleto: string }>} Mensaje de confirmación y nombre real actualizado.
+ */
   async updateUserFullName(userEmail: string, nombreReal: string) {
     if (!userEmail || !nombreReal) {
       throw new BadRequestException('Email y nombre real son requeridos.');
@@ -315,8 +371,11 @@ export class UsersService {
     return { message: 'Nombre completo actualizado correctamente.', NombreCompleto: nombreReal };
   }
 
+  /**
+ * Devuelve las URLs de las imágenes disponibles por defecto para perfiles de usuario.
+ * @returns {Promise<string[]>} Lista de URLs de imágenes predefinidas de perfil de usuario.
+ */
   async getAllUserDefaultImageUrls() {
-    // 🔹 Verificar que el contenedor está configurado
 
     const containerName = process.env.CONTAINER_DEFAULT_PHOTOS;
 
@@ -327,9 +386,7 @@ export class UsersService {
     const containerClient = this.blobServiceClient.getContainerClient(containerName);
     const imageUrls: string[] = [];
 
-    // 🔹 Acceder a todos los blobs en el contenedor
     for await (const blob of containerClient.listBlobsFlat()) {
-      // Construir la URL de cada imagen
       const imageUrl = `${containerClient.url}/${blob.name}`;
       imageUrls.push(imageUrl);
     }
@@ -337,6 +394,12 @@ export class UsersService {
     return imageUrls;
   }
 
+  /**
+ * Actualiza la foto de perfil del usuario usando una imagen predeterminada.
+ * @param {string} userEmail - Correo del usuario.
+ * @param {string} imageUrl - URL de la imagen seleccionada.
+ * @returns {Promise<{ message: string }>} Mensaje de confirmación y foto de perfil actualizada.
+ */
   async updateUserDefaultPhoto(userEmail: string, imageUrl: string) {
     const containerNameDefault = process.env.CONTAINER_DEFAULT_PHOTOS;
     if (!containerNameDefault) {
@@ -348,19 +411,16 @@ export class UsersService {
       throw new BadRequestException('El contenedor de imágenes no está definido en las variables de entorno.');
     }
 
-    // Comprobar si la URL de la imagen corresponde al contenedor correcto
     if (!imageUrl.startsWith(`${process.env.AZURE_BLOB_URL}/${containerNameDefault}`)) {
       throw new BadRequestException('El enlace proporcionado no corresponde al contenedor correcto.');
     }
 
-    // Obtener el nombre de la imagen del enlace
     const imageName = imageUrl.split('/').pop();
 
     if (!imageName) {
       throw new BadRequestException('No se pudo extraer el nombre de la imagen del enlace.');
     }
 
-    // Verificar si la imagen existe en Blob Storage
     const containerClient = this.blobServiceClient.getContainerClient(containerNameDefault);
     const blobClient = containerClient.getBlobClient(imageName);
 
@@ -369,7 +429,6 @@ export class UsersService {
       throw new NotFoundException('La imagen no existe en el contenedor de Blob Storage.');
     }
 
-    // Obtener la playlist del usuario
     const user = await this.prisma.usuario.findUnique({
       where: { Email: userEmail },
     });
@@ -378,7 +437,6 @@ export class UsersService {
       throw new NotFoundException('No se encontró el usuario.');
     }
 
-    // Si ya existe una portada anterior, comprobar si es del mismo contenedor y borrarla
     if (user.LinkFoto) {
       const previousImageName = user.LinkFoto.split('/').pop();
       if (previousImageName && previousImageName !== imageName) {
@@ -386,13 +444,11 @@ export class UsersService {
         const previousBlobClient = previousContainerClient.getBlobClient(previousImageName);
         const previousExists = await previousBlobClient.exists();
         if (previousExists) {
-          // Eliminar la imagen anterior
           await previousBlobClient.deleteIfExists();
         }
       }
     }
 
-    // Actualizar la portada de la playlist en la tabla Lista
     await this.prisma.usuario.update({
       where: { Email: userEmail },
       data: { LinkFoto: imageUrl },
@@ -403,8 +459,12 @@ export class UsersService {
     };
   }
 
+  /**
+   * Devuelve el perfil público del usuario junto a sus playlists públicas o protegidas.
+   * @param {string} userEmail - Correo del usuario.
+   * @returns {Promise<{ Nick: string, LinkFoto: string, Playlists: { Id: number, Nombre: string, Portada: string }[] }>} Perfil del usuario y sus listas.
+   */
   async getUserProfileWithPublicPlaylists(userEmail: string) {
-    // 🔹 1️⃣ Obtener Nick y LinkFoto del usuario
     const user = await this.prisma.usuario.findUnique({
       where: { Email: userEmail },
       select: {
@@ -417,7 +477,6 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    // 🔹 2️⃣ Obtener las listas de reproducción públicas o protegidas del usuario
     const playlists = await this.prisma.listaReproduccion.findMany({
       where: {
         EmailAutor: userEmail,
@@ -434,7 +493,6 @@ export class UsersService {
       },
     });
 
-    // 🔹 3️⃣ Formatear el resultado para que Portada esté al mismo nivel
     const formattedPlaylists = playlists.map(p => ({
       Id: p.Id,
       Nombre: p.Nombre,

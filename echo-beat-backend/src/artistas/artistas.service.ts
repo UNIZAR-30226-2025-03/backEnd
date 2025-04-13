@@ -1,12 +1,18 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ArtistasService {
   constructor(private prisma: PrismaService) { }
 
+  /**
+ * Obtiene el perfil completo de un artista incluyendo su biografía, oyentes, foto, discografía y top 5 canciones.
+ *
+ * @param artistName - Nombre del artista a consultar.
+ * @returns Un objeto que contiene el perfil del artista, su discografía y sus 5 canciones más populares.
+ * @throws NotFoundException - Si el artista no existe en la base de datos.
+ */
   async getArtistProfile(artistName: string) {
-    // 1️⃣ Buscar datos básicos del artista
     const artista = await this.prisma.artista.findUnique({
       where: { Nombre: artistName },
       select: {
@@ -20,14 +26,12 @@ export class ArtistasService {
       throw new NotFoundException('Artista no encontrado');
     }
 
-    // 2️⃣ Obtener los álbumes del artista desde AutorAlbum
     const autorAlbums = await this.prisma.autorAlbum.findMany({
       where: { NombreArtista: artistName },
     });
 
     const albumIds = autorAlbums.map(a => a.IdAlbum);
 
-    // 3️⃣ Obtener datos de álbumes
     const albums = await this.prisma.album.findMany({
       where: { Id: { in: albumIds } },
       include: {
@@ -48,7 +52,6 @@ export class ArtistasService {
       FechaLanzamiento: album.FechaLanzamiento,
     }));
 
-    // 4️⃣ Obtener canciones del artista desde AutorCancion
     const autorCanciones = await this.prisma.autorCancion.findMany({
       where: { NombreArtista: artistName },
     });
@@ -66,24 +69,20 @@ export class ArtistasService {
       },
     });
 
-  // 5️⃣ Para cada canción, obtener los autores
-  const cancionesConAutores = await Promise.all(
-    canciones.map(async cancion => {
-      const autores = await this.prisma.autorCancion.findMany({
-        where: { IdCancion: cancion.Id },
-        select: { NombreArtista: true },
-      });
+    const cancionesConAutores = await Promise.all(
+      canciones.map(async cancion => {
+        const autores = await this.prisma.autorCancion.findMany({
+          where: { IdCancion: cancion.Id },
+          select: { NombreArtista: true },
+        });
 
-      return {
-        ...cancion,
-        Autores: autores.map(a => a.NombreArtista),
-      };
-    })
-  );
+        return {
+          ...cancion,
+          Autores: autores.map(a => a.NombreArtista),
+        };
+      })
+    );
 
-
-
-    // 6️⃣ Ordenar y seleccionar el top 5
     const topCanciones = cancionesConAutores
       .sort((a, b) => b.NumReproducciones - a.NumReproducciones)
       .slice(0, 5);

@@ -8,4 +8,4 @@ import { PrismaService } from '../prisma/prisma.service';
   providers: [ColaReproduccionService, PrismaService],
   exports: [ColaReproduccionService]
 })
-export class ColaReproduccionModule {}
+export class ColaReproduccionModule { }

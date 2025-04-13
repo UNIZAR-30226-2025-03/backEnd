@@ -1,12 +1,20 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { SearchService } from './search.service';
-import { TipoBusqueda } from './enum/tipo-busqueda.enum';  // Importar el enum
+import { TipoBusqueda } from './enum/tipo-busqueda.enum';
 
 @Controller('search')
 export class SearchController {
-  constructor(private readonly searchService: SearchService) {}
+  constructor(private readonly searchService: SearchService) { }
 
+  /**
+ * Realiza una búsqueda general de canciones, artistas, álbumes y playlists según un término de búsqueda.
+ *
+ * @param query - Término de búsqueda (por ejemplo: nombre de canción, artista, álbum o lista).
+ * @param usuarioNick - Nickname del usuario que realiza la búsqueda (usado para filtrar playlists de amigos).
+ * @param tipo - (Opcional) Tipo de búsqueda: "canciones", "artistas", "albums", "playlists".
+ * @returns Un objeto con los resultados de búsqueda según los filtros especificados.
+ */
   @ApiOperation({ summary: 'Buscar canciones, artistas, álbumes y listas con filtros' })
   @ApiResponse({
     status: 200,
@@ -22,31 +30,31 @@ export class SearchController {
   })
   @ApiQuery({
     name: 'Búsqueda',
-    required: true,  // 'q' es requerido para realizar la búsqueda
+    required: true,
     description: 'Término de búsqueda (puede ser nombre de canción, artista, álbum, lista, etc.)',
     type: String,
-    example: 'Rock',  // Ejemplo para Swagger
+    example: 'Rock',
   })
   @ApiQuery({
     name: 'usuarioNick',
-    required: true,  // 'usuarioNick' es requerido
+    required: true,
     description: 'El nickname del usuario que realiza la búsqueda. Usado para obtener las playlists de amigos.',
     type: String,
-    example: 'user123',  // Ejemplo para Swagger
+    example: 'user123',
   })
   @ApiQuery({
     name: 'tipo',
-    required: false,  // 'tipo' es opcional
+    required: false,
     description: 'Tipo de búsqueda: canciones, artistas, albums, playlists. Si no se especifica, se buscarán todos.',
-    enum: TipoBusqueda,  // Usamos el enum aquí
-    example: TipoBusqueda.Canciones,  // Ejemplo para Swagger
+    enum: TipoBusqueda,
+    example: TipoBusqueda.Canciones,
   })
   @Get()
   async search(
-    @Query('Búsqueda') query: string,              // Término de búsqueda
-    @Query('usuarioNick') usuarioNick: string,  // Nickname del usuario
-    @Query('tipo') tipo?: TipoBusqueda            // Filtro: "canciones", "artistas", "albums", "playlists"
+    @Query('Búsqueda') query: string,
+    @Query('usuarioNick') usuarioNick: string,
+    @Query('tipo') tipo?: TipoBusqueda
   ) {
-    return this.searchService.search(query, usuarioNick, tipo);  // Pasar el filtro de tipo al servicio
+    return this.searchService.search(query, usuarioNick, tipo);
   }
 }

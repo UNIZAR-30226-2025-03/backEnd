@@ -3,7 +3,7 @@ import { EstadoUsuarioService } from './estado-usuario.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Module({
-  providers: [EstadoUsuarioService,PrismaService],
+  providers: [EstadoUsuarioService, PrismaService],
   exports: [EstadoUsuarioService]
 })
-export class EstadoUsuarioModule {}
+export class EstadoUsuarioModule { }

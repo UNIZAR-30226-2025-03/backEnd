@@ -3,16 +3,29 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ChatService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
-  //Función para guardar un mensaje en la base de datos
+  /**
+ * Guarda un nuevo mensaje entre dos usuarios.
+ *
+ * @param senderId - Email del remitente.
+ * @param receiverId - Email del destinatario.
+ * @param content - Contenido del mensaje.
+ * @param leido - Indica si el mensaje ha sido leído (por defecto false).
+ * @returns El mensaje creado.
+ */
   async saveMessage(senderId: string, receiverId: string, content: string, leido = false) {
     return this.prisma.mensaje.create({
       data: { EmailSender: senderId, EmailReceiver: receiverId, Mensaje: content, Leido: leido },
     });
   }
-  
-  //Función para obtener los mensajes no leídos de un usuario
+
+  /**
+ * Obtiene los mensajes no leídos para un receptor específico.
+ *
+ * @param receiverId - Email del receptor.
+ * @returns Lista de mensajes no leídos ordenados por fecha ascendente.
+ */
   async getUnreadMessages(receiverId: string) {
     return this.prisma.mensaje.findMany({
       where: {
@@ -23,7 +36,13 @@ export class ChatService {
     });
   }
 
-  //Función para marcar los mensajes entre dos usuarios como leídos, se usara cuando un user acceda al chat con otro user
+  /**
+ * Marca como leídos todos los mensajes enviados por un usuario a otro.
+ *
+ * @param senderId - Email del remitente.
+ * @param receiverId - Email del receptor.
+ * @returns Resultado de la operación de actualización.
+ */
   async markMessagesAsRead(senderId: string, receiverId: string) {
     return this.prisma.mensaje.updateMany({
       where: {
@@ -35,7 +54,13 @@ export class ChatService {
     });
   }
 
-  //Función para obtener el historial de mensajes entre dos usuarios
+  /**
+ * Obtiene el historial completo de mensajes entre dos usuarios.
+ *
+ * @param userA - Email de un usuario.
+ * @param userB - Email del otro usuario.
+ * @returns Lista de mensajes con información sobre su posición (izquierda o derecha).
+ */
   async getChatHistory(userA: string, userB: string) {
     const mensajes = await this.prisma.mensaje.findMany({
       where: {
@@ -46,15 +71,19 @@ export class ChatService {
       },
       orderBy: { Fecha: 'asc' },
     });
-  
-    // Añadir la propiedad "posicion" con el fin de saber si el mensaje hay que mostrarlo a la izquierda o a la derecha
+
     return mensajes.map((msg) => ({
       ...msg,
       posicion: msg.EmailSender === userA ? 'derecha' : 'izquierda',
     }));
   }
-  
-  //Función para obtener la lista de chats del usuario, priorizando los que tienen mensajes no leídos
+
+  /**
+ * Obtiene la lista de chats para un usuario, mostrando el último mensaje de cada contacto.
+ *
+ * @param userEmail - Email del usuario.
+ * @returns Lista de chats ordenados por prioridad de mensajes no leídos y fecha.
+ */
   async getChatListForUser(userEmail: string) {
     const mensajes = await this.prisma.mensaje.findMany({
       where: {
@@ -67,7 +96,7 @@ export class ChatService {
         Fecha: 'desc',
       },
     });
-  
+
     const chatsMap = new Map<string, {
       contact: string;
       mensaje: string;
@@ -76,23 +105,21 @@ export class ChatService {
       lastMensaje: string;
       foto: string;
     }>();
-  
+
     for (const mensaje of mensajes) {
       const contactEmail = mensaje.EmailSender === userEmail
         ? mensaje.EmailReceiver
         : mensaje.EmailSender;
-  
-      // Si ya hemos procesado este chat (contacto), lo saltamos
+
       if (chatsMap.has(contactEmail)) continue;
-  
+
       const otherUser = await this.prisma.usuario.findUnique({
         where: { Email: contactEmail },
         select: { LinkFoto: true }
       });
-  
-      // Leído solo si el último mensaje no es un mensaje no leído recibido
+
       const esNoLeido = !mensaje.Leido;
-  
+
       chatsMap.set(contactEmail, {
         contact: contactEmail,
         mensaje: mensaje.Mensaje,
@@ -102,17 +129,17 @@ export class ChatService {
         foto: otherUser?.LinkFoto || '',
       });
     }
-  
+
     const chatList = Array.from(chatsMap.values());
-  
+
     return chatList.sort((a, b) => {
       if (!a.Leido && !b.Leido) {
-        return b.fecha.getTime() - a.fecha.getTime(); // los dos son no leídos → último primero
+        return b.fecha.getTime() - a.fecha.getTime();
       }
       if (!a.Leido) return -1;
       if (!b.Leido) return 1;
       return b.fecha.getTime() - a.fecha.getTime();
     });
   }
-  
+
 }

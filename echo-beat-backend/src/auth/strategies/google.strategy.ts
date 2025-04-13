@@ -18,6 +18,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     });
   }
 
+  /**
+ * Método de validación llamado después de que el usuario se autentica con Google.
+ * Utiliza el perfil proporcionado por Google para validar o registrar al usuario.
+ *
+ * @param accessToken - Token de acceso proporcionado por Google.
+ * @param refreshToken - Token de actualización proporcionado por Google.
+ * @param profile - Perfil del usuario proporcionado por Google.
+ * @param done - Callback para finalizar el proceso de validación.
+ * @returns Una llamada al callback con el usuario validado.
+ */
   async validate(accessToken: string, refreshToken: string, profile: any, done: VerifyCallback) {
     const user = await this.authService.validateGoogleUser(profile);
     return done(null, user);

@@ -1,11 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+/**
+ * Servicio para realizar búsquedas en artistas, canciones, álbumes y playlists.
+ */
 @Injectable()
 export class SearchService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
-  // Método de búsqueda con el filtro 'tipo'
+  /**
+ * Realiza una búsqueda general en artistas, canciones, álbumes y playlists.
+ * El resultado depende del tipo especificado.
+ *
+ * @param query - Texto de búsqueda.
+ * @param usuarioNick - Nick del usuario que realiza la búsqueda.
+ * @param tipo - (Opcional) Tipo de búsqueda: 'artistas', 'canciones', 'albums', 'playlists', 'genero'.
+ * @returns Resultados agrupados por tipo de entidad.
+ */
   async search(query: string, usuarioNick: string, tipo?: string) {
     const searchResults = {
       artistas: tipo === 'artistas' || !tipo ? await this.prisma.artista.findMany({
@@ -61,7 +72,6 @@ export class SearchService {
         autor: album.autores.length > 0 ? album.autores[0].artista.Nombre : null,
       }))) : [],
 
-      // Buscar playlists cuando el tipo es 'playlists' o no se pasa el tipo
       playlists: (tipo === 'playlists' || !tipo) ? await this.prisma.listaReproduccion.findMany({
         where: {
           Nombre: {
@@ -86,7 +96,6 @@ export class SearchService {
         portada: lista.lista.Portada,
       }))) : [],
 
-      // Buscar playlists cuando el tipo es 'genero'
       playlistsPorGenero: tipo === 'genero' ? await this.prisma.listaReproduccion.findMany({
         where: {
           Genero: {
@@ -111,16 +120,21 @@ export class SearchService {
         portada: lista.lista.Portada,
       }))) : [],
 
-      // Ahora incluimos las playlists protegidas de los amigos
       playlistsProtegidasDeAmigos: tipo === 'playlists' || !tipo ? await this.getFriendPlaylists(usuarioNick, query, tipo) : [],
     };
 
     return searchResults;
   }
 
-  // Método para obtener playlists de amigos del usuario
+  /**
+   * Obtiene las playlists con privacidad 'protegido' creadas por amigos del usuario.
+   *
+   * @param usuarioNick - Nick del usuario que realiza la búsqueda.
+   * @param query - Texto de búsqueda.
+   * @param tipo - Tipo de búsqueda (puede ser 'genero').
+   * @returns Arreglo de playlists protegidas encontradas.
+   */
   private async getFriendPlaylists(usuarioNick: string, query: string, tipo?: string) {
-    // Obtener los amigos del usuario actual
     const amigos = await this.prisma.amistad.findMany({
       where: {
         OR: [
@@ -134,40 +148,35 @@ export class SearchService {
       },
     });
 
-    // Crear una lista de amigos con las cuales el usuario tiene una amistad aceptada
     const friendsNicknames = amigos.map(amigo =>
       amigo.NickFriendSender === usuarioNick ? amigo.NickFriendReceiver : amigo.NickFriendSender
     );
 
-    // Obtener los correos electrónicos de los amigos a partir de los nicks
     const friendsEmails = await this.prisma.usuario.findMany({
       where: {
         Nick: {
-          in: friendsNicknames, // Buscar los amigos por su nick
+          in: friendsNicknames,
         },
       },
       select: {
-        Email: true, // Obtener el email de los amigos
+        Email: true,
       },
     });
 
-    // Extraer los emails de los amigos
     const friendEmailsList = friendsEmails.map(friend => friend.Email);
 
-    // Buscar las playlists protegidas de esos amigos usando los emails
     const playlists = await this.prisma.listaReproduccion.findMany({
       where: {
         Nombre: {
           contains: query,
           mode: 'insensitive',
         },
-        TipoPrivacidad: 'protegido', // Solo las playlists protegidas
+        TipoPrivacidad: 'protegido',
         EmailAutor: {
-          in: friendEmailsList, // Buscar las listas de los amigos por su EmailAutor
+          in: friendEmailsList,
         },
-        // Si el tipo es 'genero', filtrar por el género
         Genero: tipo === 'genero' ? {
-          contains: query, // Aquí se asume que el género se filtra por un campo "Genero"
+          contains: query,
           mode: 'insensitive',
         } : undefined,
       },

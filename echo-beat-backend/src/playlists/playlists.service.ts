@@ -1,7 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
-import { Readable } from 'stream';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -18,8 +17,9 @@ export class PlaylistsService {
   }
 
   /**
-   * Devuelve la primera canción de la playlist (por posición más baja).
-   * Retorna el nombre de archivo (por ejemplo, el campo Nombre) o null si no encuentra ninguna.
+   * Obtiene el nombre de la primera canción en una playlist dada su ID.
+   * @param playlistId ID de la playlist.
+   * @returns Nombre de la primera canción o null si no se encuentra.
    */
   async getFirstSongInPlaylist(playlistId: string): Promise<string | null> {
     const firstPosition = await this.prisma.posicionCancion.findFirst({
@@ -35,29 +35,26 @@ export class PlaylistsService {
       where: { Id: firstPosition.IdCancion },
     });
 
-    // Retorna el nombre de la canción o null si no existe
     return song ? song.Nombre : null;
   }
 
   /**
-   * Devuelve la siguiente canción de la playlist. Este ejemplo omite lógica avanzada:
-   * simplemente hace skip de la primera posición y toma la siguiente en orden.
-   * Puedes ajustar este método según tu caso de uso real.
+   * Obtiene el nombre de la siguiente canción en la playlist (segunda en orden).
+   * @param playlistId ID de la playlist.
+   * @returns Nombre de la siguiente canción o null si no se encuentra.
    */
   async getNextSongInPlaylist(playlistId: string): Promise<string | null> {
-    // Obtiene todas las canciones ordenadas por posición
     const positions = await this.prisma.posicionCancion.findMany({
       where: { IdLista: Number(playlistId) },
       orderBy: { Posicion: 'asc' },
-      skip: 1,  // Se salta la primera
-      take: 1,  // Toma la siguiente
+      skip: 1,
+      take: 1,
     });
 
     if (positions.length === 0) {
       return null;
     }
 
-    // Busca los datos de la canción
     const nextSong = await this.prisma.cancion.findUnique({
       where: { Id: positions[0].IdCancion },
     });
@@ -65,20 +62,21 @@ export class PlaylistsService {
     return nextSong ? nextSong.Nombre : null;
   }
 
+
   /**
-   * Retorna todas las playlists creadas por el usuario.
-   * Incluye la información de la tabla Lista.
+   * Retorna todas las playlists creadas por un usuario junto con su información.
+   * @param userEmail Correo del usuario.
+   * @returns Listado de playlists o mensaje si no hay ninguna.
    */
   async findAllByUser(userEmail: string) {
     const playlists = await this.prisma.listaReproduccion.findMany({
       where: { EmailAutor: userEmail },
       include: {
-        lista: true, // Incluye información adicional de la tabla Lista
+        lista: true,
       },
     });
 
     if (!playlists.length) {
-      // Manejo opcional de caso sin playlists
       return { message: 'El usuario no tiene playlists', playlists: [] };
     }
 
@@ -86,7 +84,9 @@ export class PlaylistsService {
   }
 
   /**
-   * Obtiene todas las canciones de una lista de reproducción.
+   * Obtiene todas las canciones de una lista de reproducción dada.
+   * @param listId ID de la lista.
+   * @returns Objeto con un array de canciones.
    */
   async getSongsByListId(listId: string) {
     const playlist = await this.prisma.lista.findUnique({
@@ -102,7 +102,6 @@ export class PlaylistsService {
       throw new NotFoundException(`No se encontró la playlist con ID ${listId}`);
     }
 
-    // Extraer las canciones de la lista
     const canciones = playlist.posiciones.map(posicion => ({
       id: posicion.cancion.Id,
       nombre: posicion.cancion.Nombre,
@@ -115,6 +114,15 @@ export class PlaylistsService {
     return { canciones };
   }
 
+  /**
+ * Crea una nueva playlist con una imagen personalizada subida por el usuario.
+ * @param emailUsuario Correo del usuario.
+ * @param nombrePlaylist Nombre de la playlist.
+ * @param descripcionPlaylist Descripción de la playlist.
+ * @param tipoPrivacidad Privacidad de la playlist.
+ * @param file Archivo de imagen subido.
+ * @returns Mensaje de confirmación y datos de la playlist creada.
+ */
   async createPlaylist(
     emailUsuario: string,
     nombrePlaylist: string,
@@ -131,12 +139,10 @@ export class PlaylistsService {
       throw new NotFoundException('No se encontró un usuario con ese correo.');
     }
 
-    // 🔹 1️⃣ Validar que el tipo de privacidad es correcto
     if (tipoPrivacidad != "privado" && tipoPrivacidad != "protegido" && tipoPrivacidad != "publico") {
       throw new BadRequestException('El tipo de privacidad debe ser "publico", "privado" o "protegido".');
     }
 
-    // 🔹 2️⃣ Subir la imagen a Azure Blob Storage
     const containerName = process.env.CONTAINER_LIST_PHOTOS;
     if (!containerName) {
       throw new Error('La variable de entorno CONTAINER_USER_PHOTOS no está definida.');
@@ -150,10 +156,8 @@ export class PlaylistsService {
       blobHTTPHeaders: { blobContentType: file.mimetype },
     });
 
-    // 🔹 3️⃣ Obtener la URL de la imagen
     const imageUrl = `${containerClient.url}/${newBlobName}`;
 
-    // 🔹 4️⃣ Insertar en la tabla Lista
     const newPlaylist = await this.prisma.lista.create({
       data: {
         Nombre: nombrePlaylist,
@@ -166,10 +170,9 @@ export class PlaylistsService {
       },
     });
 
-    // 🔹 5️⃣ Insertar en la tabla ListaReproduccion
     await this.prisma.listaReproduccion.create({
       data: {
-        Id: newPlaylist.Id, // La misma ID de Lista
+        Id: newPlaylist.Id,
         Nombre: nombrePlaylist,
         TipoPrivacidad: tipoPrivacidad,
         EmailAutor: emailUsuario,
@@ -184,6 +187,15 @@ export class PlaylistsService {
     };
   }
 
+  /**
+ * Crea una nueva playlist usando una imagen predefinida.
+ * @param emailUsuario Correo del usuario.
+ * @param nombrePlaylist Nombre de la playlist.
+ * @param descripcionPlaylist Descripción de la playlist.
+ * @param tipoPrivacidad Privacidad de la playlist.
+ * @param imageUrl URL de la imagen predefinida.
+ * @returns Mensaje de éxito y datos de la nueva playlist.
+ */
   async createPlaylistWithImageUrl(
     emailUsuario: string,
     nombrePlaylist: string,
@@ -199,23 +211,19 @@ export class PlaylistsService {
       throw new NotFoundException('No se encontró un usuario con ese correo.');
     }
 
-    // 🔹 1️⃣ Validar que el tipo de privacidad es correcto
     if (tipoPrivacidad != "privado" && tipoPrivacidad != "protegido" && tipoPrivacidad != "publico") {
       throw new BadRequestException('El tipo de privacidad debe ser "publico", "privado" o "protegido".');
     }
 
-    // 🔹 2️⃣ Comprobar si la URL proporcionada es válida
     const containerName = process.env.CONTAINER_DEFAULT_LIST_PHOTOS;
     if (!containerName) {
       throw new Error('La variable de entorno CONTAINER_DEFAULT_LIST_PHOTOS no está definida.');
     }
 
-    // 🔹 3️⃣ Validar que la URL es del contenedor correcto
     if (!imageUrl.startsWith(`${process.env.AZURE_BLOB_URL}/${containerName}`)) {
       throw new BadRequestException('El enlace proporcionado no corresponde al contenedor correcto.');
     }
 
-    // 🔹 4️⃣ Insertar en la tabla Lista con la URL de la imagen
     const newPlaylist = await this.prisma.lista.create({
       data: {
         Nombre: nombrePlaylist,
@@ -228,7 +236,6 @@ export class PlaylistsService {
       },
     });
 
-    // 🔹 5️⃣ Insertar en la tabla ListaReproduccion
     await this.prisma.listaReproduccion.create({
       data: {
         Id: newPlaylist.Id, // La misma ID de Lista
@@ -246,12 +253,16 @@ export class PlaylistsService {
     };
   }
 
-
+  /**
+   * Elimina una playlist, su imagen, las canciones asociadas y referencias.
+   * @param userEmail Correo del usuario.
+   * @param playlistId ID de la playlist.
+   * @returns Mensaje de éxito.
+   */
   async deletePlaylist(userEmail: string, playlistId: number) {
-    // 🔹 1️⃣ Verificar si la playlist existe
     const playlist = await this.prisma.lista.findUnique({
       where: {
-        Id: playlistId,  // Aquí estamos pasando correctamente el ID de la playlist
+        Id: playlistId,
       },
       select: {
         Id: true,
@@ -263,7 +274,6 @@ export class PlaylistsService {
       throw new NotFoundException('No se encontró la playlist con el ID proporcionado.');
     }
 
-    // 🔹Verificar si el usuario es el autor de la playlist
     const playlistReproduccion = await this.prisma.listaReproduccion.findUnique({
       where: {
         Id: playlistId,
@@ -281,7 +291,6 @@ export class PlaylistsService {
       throw new ForbiddenException('No eres el autor de la playlist. No puedes eliminarla.');
     }
 
-    // 🔹 Eliminar la portada de Azure Blob Storage
     if (playlist.Portada) {
       const oldBlobName = playlist.Portada.split('/').pop();
       const containerName = process.env.CONTAINER_LIST_PHOTOS;
@@ -295,22 +304,18 @@ export class PlaylistsService {
       }
     }
 
-    // 🔹 Borrar todas las filas en PosicionCancion donde IdLista sea el ID de la playlist
     await this.prisma.posicionCancion.deleteMany({
       where: { IdLista: playlistId },
     });
 
-    // 🔹 Borrar la fila en ListaReproduccion
     await this.prisma.listaReproduccion.delete({
       where: { Id: playlistId },
     });
 
-    // 🔹 Borrar la fila en Lista
     await this.prisma.lista.delete({
       where: { Id: playlistId },
     });
 
-    // 🔹 Actualizar la tabla Usuario, poniendo UltimaListaEscuchada en null donde sea la playlist eliminada
     await this.prisma.usuario.updateMany({
       where: { UltimaListaEscuchada: playlistId },
       data: { UltimaListaEscuchada: null },
@@ -319,8 +324,11 @@ export class PlaylistsService {
     return { message: 'Playlist eliminada correctamente' };
   }
 
+  /**
+ * Devuelve una lista con todas las URLs de imágenes predefinidas.
+ * @returns Array de URLs de imágenes.
+ */
   async getAllListDefaultImageUrls() {
-    // 🔹 Verificar que el contenedor está configurado
 
     const containerName = process.env.CONTAINER_DEFAULT_LIST_PHOTOS;
 
@@ -331,9 +339,7 @@ export class PlaylistsService {
     const containerClient = this.blobServiceClient.getContainerClient(containerName);
     const imageUrls: string[] = [];
 
-    // 🔹 Acceder a todos los blobs en el contenedor
     for await (const blob of containerClient.listBlobsFlat()) {
-      // Construir la URL de cada imagen
       const imageUrl = `${containerClient.url}/${blob.name}`;
       imageUrls.push(imageUrl);
     }
@@ -341,8 +347,13 @@ export class PlaylistsService {
     return imageUrls;
   }
 
+  /**
+ * Añade una canción a una playlist.
+ * @param playlistId ID de la playlist.
+ * @param songId ID de la canción.
+ * @returns Mensaje de éxito y posición de la canción añadida.
+ */
   async addSongToPlaylist(playlistId: number, songId: number) {
-    // 🔹 1️⃣ Verificar si la playlist existe
     const playlist = await this.prisma.listaReproduccion.findUnique({
       where: { Id: playlistId },
     });
@@ -351,7 +362,6 @@ export class PlaylistsService {
       throw new NotFoundException('No se encontró la playlist con el ID proporcionado.');
     }
 
-    // 🔹 2️⃣ Verificar si la canción existe
     const song = await this.prisma.cancion.findUnique({
       where: { Id: songId },
     });
@@ -360,7 +370,6 @@ export class PlaylistsService {
       throw new NotFoundException('No se encontró la canción con el ID proporcionado.');
     }
 
-    // 🔹 3️⃣ Obtener la última posición en la tabla PosicionCancion para la playlist
     const lastPosition = await this.prisma.posicionCancion.aggregate({
       _max: {
         Posicion: true,
@@ -372,7 +381,6 @@ export class PlaylistsService {
 
     const newPosition = lastPosition._max.Posicion ? lastPosition._max.Posicion + 1 : 1;
 
-    // 🔹 4️⃣ Insertar la nueva canción en la tabla PosicionCancion
     await this.prisma.posicionCancion.create({
       data: {
         IdLista: playlistId,
@@ -381,30 +389,26 @@ export class PlaylistsService {
       },
     });
 
-    // 🔹 5️⃣ Contar los géneros de las canciones en la playlist
     const positionSongs = await this.prisma.posicionCancion.findMany({
       where: {
         IdLista: playlistId,
       },
       include: {
-        cancion: true, // Incluimos la información de las canciones
+        cancion: true,
       },
     });
 
     const genreCount: Record<string, number> = {};
 
-    // Contamos cuántas veces aparece cada género
     positionSongs.forEach(({ cancion }) => {
-      const genre = cancion.Genero || "Sin genero"; // Si no tiene género, lo asignamos como "Sin genero"
+      const genre = cancion.Genero || "Sin genero";
       genreCount[genre] = (genreCount[genre] || 0) + 1;
     });
 
-    // 🔹 6️⃣ Determinar el género predominante
     const predominantGenre = Object.keys(genreCount).reduce((prev, curr) => {
       return genreCount[curr] > genreCount[prev] ? curr : prev;
     });
 
-    // 🔹 7️⃣ Actualizar el género de la lista de reproducción
     await this.prisma.listaReproduccion.update({
       where: { Id: playlistId },
       data: {
@@ -412,30 +416,32 @@ export class PlaylistsService {
       },
     });
 
-    // 🔹 8️⃣ Actualizar el número de canciones y la duración total
-    const totalSongs = positionSongs.length; // Total de canciones en la playlist
+    const totalSongs = positionSongs.length;
 
-    // Calcular la duración total sumando la duración de todas las canciones
     const totalDuration = positionSongs.reduce((sum, { cancion }) => sum + (cancion.Duracion || 0), 0);
 
-    // Actualizamos los campos NumCanciones y Duracion de la tabla Lista
     await this.prisma.lista.update({
       where: { Id: playlistId },
       data: {
-        NumCanciones: totalSongs,  // Actualizamos el número de canciones
-        Duracion: totalDuration,   // Actualizamos la duración total
+        NumCanciones: totalSongs,
+        Duracion: totalDuration,
       },
     });
 
     return {
       message: 'Canción añadida a la playlist correctamente',
       position: newPosition,
-      predominantGenre: predominantGenre, // Mostramos el género predominante
+      predominantGenre: predominantGenre,
     };
   }
 
+  /**
+ * Elimina una canción de una playlist y actualiza las posiciones restantes.
+ * @param playlistId ID de la playlist.
+ * @param songId ID de la canción.
+ * @returns Mensaje y género actualizado.
+ */
   async deleteSongFromPlaylist(playlistId: number, songId: number) {
-    // 🔹 1️⃣ Verificar si la lista de reproducción existe
     const playlist = await this.prisma.lista.findUnique({
       where: { Id: playlistId },
     });
@@ -444,7 +450,6 @@ export class PlaylistsService {
       throw new NotFoundException('No se encontró la lista de reproducción con el ID proporcionado.');
     }
 
-    // 🔹 2️⃣ Verificar si la canción existe
     const song = await this.prisma.cancion.findUnique({
       where: { Id: songId },
     });
@@ -453,7 +458,6 @@ export class PlaylistsService {
       throw new NotFoundException('No se encontró la canción con el ID proporcionado.');
     }
 
-    // 🔹 3️⃣ Eliminar la canción de la tabla PosicionCancion
     const songPosition = await this.prisma.posicionCancion.findUnique({
       where: {
         IdLista_IdCancion: { IdLista: playlistId, IdCancion: songId },
@@ -464,44 +468,38 @@ export class PlaylistsService {
       throw new NotFoundException('La canción no se encuentra en la playlist.');
     }
 
-    // 🔹 4️⃣ Eliminar la fila de la canción de la tabla PosicionCancion
     await this.prisma.posicionCancion.delete({
       where: {
         IdLista_IdCancion: { IdLista: playlistId, IdCancion: songId },
       },
     });
 
-    // 🔹 5️⃣ Actualizar las posiciones de las canciones restantes
-    // La posición de las canciones que estaban por delante de la canción eliminada debe disminuir en 1
     await this.prisma.posicionCancion.updateMany({
       where: {
         IdLista: playlistId,
-        Posicion: { gt: songPosition.Posicion },  // Usamos 'gt' para mayor que
+        Posicion: { gt: songPosition.Posicion },
       },
       data: {
-        Posicion: { decrement: 1 },  // Reducimos la posición de las canciones siguientes
+        Posicion: { decrement: 1 },
       },
     });
 
-    //  Contar los géneros de las canciones en la playlist
     const positionSongs = await this.prisma.posicionCancion.findMany({
       where: {
         IdLista: playlistId,
       },
       include: {
-        cancion: true, // Incluimos la información de las canciones
+        cancion: true,
       },
     });
 
     const genreCount: Record<string, number> = {};
 
-    // Contamos cuántas veces aparece cada género
     positionSongs.forEach(({ cancion }) => {
-      const genre = cancion.Genero || "Sin genero"; // Si no tiene género, lo asignamos como "Sin genero"
+      const genre = cancion.Genero || "Sin genero";
       genreCount[genre] = (genreCount[genre] || 0) + 1;
     });
 
-    // 🔹  Determinar el género predominante solo si hay canciones
     let predominantGenre: string | null = null;
 
     if (positionSongs.length > 0) {
@@ -509,10 +507,9 @@ export class PlaylistsService {
         return genreCount[curr] > genreCount[prev] ? curr : prev;
       });
     } else {
-      predominantGenre = "Sin genero"; // O pon null si prefieres: predominantGenre = null;
+      predominantGenre = "Sin genero";
     }
 
-    // Actualizar el género de la lista de reproducción
     await this.prisma.listaReproduccion.update({
       where: { Id: playlistId },
       data: {
@@ -520,35 +517,36 @@ export class PlaylistsService {
       },
     });
 
-    // 🔹 9️⃣ Actualizar el número de canciones y la duración total
     let totalSongs = positionSongs.length;
     let totalDuration = 0;
 
     if (totalSongs > 0) {
-      // Si hay canciones, calculamos la duración total
       totalDuration = positionSongs.reduce((sum, { cancion }) => sum + (cancion.Duracion || 0), 0);
     }
 
-    // Actualizamos los campos NumCanciones y Duracion de la tabla Lista
     await this.prisma.lista.update({
       where: { Id: playlistId },
       data: {
-        NumCanciones: totalSongs,  // Actualizamos el número de canciones
-        Duracion: totalDuration,   // Actualizamos la duración total
+        NumCanciones: totalSongs,
+        Duracion: totalDuration,
       },
     });
 
     return {
       message: 'Canción eliminada correctamente y las posiciones actualizadas. También se ha redefinido el género de la lista',
-      predominantGenre: predominantGenre, // Mostramos el género predominante
+      predominantGenre: predominantGenre,
     };
   }
 
+  /**
+ * Devuelve los detalles básicos de una lista de reproducción.
+ * @param idList ID de la lista.
+ * @returns Detalles de la lista.
+ */
   async getListDetails(idList: number) {
-    // Buscar la playlist por la ID
     const playlist = await this.prisma.lista.findUnique({
       where: {
-        Id: idList, // Buscar por la ID proporcionada
+        Id: idList,
       },
       select: {
         Nombre: true,
@@ -568,6 +566,11 @@ export class PlaylistsService {
     return playlist;
   }
 
+  /**
+ * Devuelve los detalles de un álbum incluyendo autor, portada y estadísticas.
+ * @param idLista ID del álbum.
+ * @returns Objeto con los detalles del álbum.
+ */
   async getAlbumDetails(idLista: number) {
     const album = await this.prisma.album.findUnique({
       where: {
@@ -610,12 +613,15 @@ export class PlaylistsService {
     };
   }
 
-
+  /**
+   * Devuelve los detalles de privacidad y género de una playlist.
+   * @param idPlaylist ID de la playlist.
+   * @returns Objeto con la privacidad y género.
+   */
   async getPlaylistDetails(idPlaylist: number) {
-    // Buscar en la tabla ListaReproduccion por la IdPlaylist
     const playlist = await this.prisma.listaReproduccion.findUnique({
       where: {
-        Id: idPlaylist, // Buscar por la ID proporcionada
+        Id: idPlaylist,
       },
       select: {
         TipoPrivacidad: true,
@@ -630,6 +636,14 @@ export class PlaylistsService {
     return playlist;
   }
 
+
+  /**
+   * Actualiza la portada de una playlist desde una imagen por defecto.
+   * @param userEmail Correo del usuario.
+   * @param playlistId ID de la playlist.
+   * @param imageUrl URL de la nueva portada.
+   * @returns Mensaje de éxito.
+   */
   async updatePlaylistCover(userEmail: string, playlistId: number, imageUrl: string) {
     const containerNameDefault = process.env.CONTAINER_DEFAULT_LIST_PHOTOS;
     if (!containerNameDefault) {
@@ -641,19 +655,16 @@ export class PlaylistsService {
       throw new BadRequestException('El contenedor de imágenes no está definido en las variables de entorno.');
     }
 
-    // Comprobar si la URL de la imagen corresponde al contenedor correcto
     if (!imageUrl.startsWith(`${process.env.AZURE_BLOB_URL}/${containerNameDefault}`)) {
       throw new BadRequestException('El enlace proporcionado no corresponde al contenedor correcto.');
     }
 
-    // Obtener el nombre de la imagen del enlace
     const imageName = imageUrl.split('/').pop();
 
     if (!imageName) {
       throw new BadRequestException('No se pudo extraer el nombre de la imagen del enlace.');
     }
 
-    // Verificar si la imagen existe en Blob Storage
     const containerClient = this.blobServiceClient.getContainerClient(containerNameDefault);
     const blobClient = containerClient.getBlobClient(imageName);
 
@@ -662,7 +673,6 @@ export class PlaylistsService {
       throw new NotFoundException('La imagen no existe en el contenedor de Blob Storage.');
     }
 
-    // Obtener la playlist del usuario
     const user = await this.prisma.usuario.findUnique({
       where: { Email: userEmail },
     });
@@ -671,22 +681,19 @@ export class PlaylistsService {
       throw new NotFoundException('No se encontró el usuario.');
     }
 
-    // Obtener la listaReproduccion y comprobar si el usuario es el autor de la playlist
     const playlist = await this.prisma.listaReproduccion.findUnique({
       where: { Id: playlistId },
-      include: { lista: true }, // Incluimos la tabla Lista asociada a la listaReproduccion
+      include: { lista: true },
     });
 
     if (!playlist) {
       throw new NotFoundException('No se encontró la playlist asociada al ID proporcionado.');
     }
 
-    // Comprobar si el autor de la lista es el usuario actual
     if (playlist.EmailAutor !== userEmail) {
       throw new ForbiddenException('El usuario no es el autor de esta playlist.');
     }
 
-    // Si ya existe una portada anterior, comprobar si es del mismo contenedor y borrarla
     if (playlist.lista.Portada) {
       const previousImageName = playlist.lista.Portada.split('/').pop();
       if (previousImageName && previousImageName !== imageName) {
@@ -694,13 +701,11 @@ export class PlaylistsService {
         const previousBlobClient = previousContainerClient.getBlobClient(previousImageName);
         const previousExists = await previousBlobClient.exists();
         if (previousExists) {
-          // Eliminar la imagen anterior
           await previousBlobClient.deleteIfExists();
         }
       }
     }
 
-    // Actualizar la portada de la playlist en la tabla Lista
     await this.prisma.lista.update({
       where: { Id: playlistId },
       data: { Portada: imageUrl },
@@ -711,6 +716,13 @@ export class PlaylistsService {
     };
   }
 
+  /**
+ * Actualiza la portada de una playlist subiendo una imagen nueva.
+ * @param idLista ID de la playlist.
+ * @param file Imagen subida.
+ * @param userEmail Correo del usuario.
+ * @returns Mensaje de éxito y URL nueva.
+ */
   async updatePlaylistPhoto(idLista: number, file: Express.Multer.File, userEmail: string) {
     const lista = await this.prisma.lista.findUnique({
       where: { Id: idLista },
@@ -729,7 +741,6 @@ export class PlaylistsService {
       throw new NotFoundException('La lista no es una playlist');
     }
 
-    // 🔹 3️⃣ Comprobar si el email del usuario coincide con el EmailAutor de la tabla ListaReproduccion
     if (playlist.EmailAutor !== userEmail) {
       throw new ForbiddenException('No tienes permisos para actualizar esta playlist');
     }
@@ -740,7 +751,6 @@ export class PlaylistsService {
       throw new Error('La variable de entorno CONTAINER_LIST_PHOTOS no está definida.');
     }
 
-    // Eliminar la foto anterior si existe
     if (lista.Portada) {
       const oldPhotoUrl = lista.Portada;
       const oldBlobName = oldPhotoUrl.split('/').pop();
@@ -751,20 +761,16 @@ export class PlaylistsService {
       }
     }
 
-    // Generar un nuevo nombre de archivo único
     const newBlobName = `${uuidv4()}-${file.originalname}`;
 
-    // Subir el archivo a Azure Blob Storage
     const containerClient = this.blobServiceClient.getContainerClient(containerName);
     const blobClient = containerClient.getBlockBlobClient(newBlobName);
     await blobClient.uploadData(file.buffer, {
       blobHTTPHeaders: { blobContentType: file.mimetype },
     });
 
-    // Construir la nueva URL de la foto en Azure Blob Storage
     const uploadedPhotoUrl = `${containerClient.url}/${newBlobName}`;
 
-    // Actualizar la base de datos con la nueva URL
     await this.prisma.lista.update({
       where: { Id: idLista },
       data: { Portada: uploadedPhotoUrl },
@@ -773,13 +779,13 @@ export class PlaylistsService {
     return { message: 'Foto actualizada correctamente', newPhotoUrl: uploadedPhotoUrl };
   }
 
-
   /**
-  * Obtiene el nombre de una canción por su ID.
- */
+   * Obtiene el nombre de una canción por su ID.
+   * @param songId ID de la canción.
+   * @returns Nombre de la canción o null.
+   */
   async getSongName(songId: number): Promise<string | null> {
 
-    // Busca los datos de la canción
     const songName = await this.prisma.cancion.findUnique({
       where: { Id: songId },
     });
@@ -788,11 +794,12 @@ export class PlaylistsService {
   }
 
   /**
-* Obtiene el nombre de una canción por su ID.
-*/
+ * Obtiene la duración de una canción.
+ * @param songId ID de la canción.
+ * @returns Duración en segundos.
+ */
   async getSongLength(songId: number): Promise<number> {
 
-    // Busca los datos de la canción
     const songName = await this.prisma.cancion.findUnique({
       where: { Id: songId },
     });
@@ -801,38 +808,42 @@ export class PlaylistsService {
   }
 
   /**
-   * Obtiene las listas a las que un determinado usuario le ha dado like.
-   */
+ * Devuelve las playlists que un usuario ha marcado con like.
+ * @param email Correo del usuario.
+ * @returns Array de listas favoritas.
+ */
   async getLikedListsByUser(email: string) {
-    // Consultamos las listas que un usuario ha likeado
     const likedLists = await this.prisma.like.findMany({
       where: {
-        EmailUsuario: email, // Filtramos por el email del usuario
-        tieneLike: true,      // Solo nos interesa aquellas donde tieneLike es verdadero
+        EmailUsuario: email,
+        tieneLike: true,
       },
       include: {
-        lista: true,          // Incluimos la lista completa con todos los datos
+        lista: true,
       },
     });
 
-    return likedLists.map((like) => like.lista); // Devolvemos solo las listas
+    return likedLists.map((like) => like.lista);
   }
 
+  /**
+ * Da like a una playlist.
+ * @param email Correo del usuario.
+ * @param idLista ID de la playlist.
+ * @returns Mensaje de confirmación.
+ */
   async addLikeToPlaylist(email: string, idLista: number) {
-    // Verificamos si el usuario y la lista existen
     const user = await this.prisma.usuario.findUnique({ where: { Email: email } });
 
-    // Convierte idLista a un número entero, aunque debería serlo por defecto
-    const playlistId = parseInt(idLista.toString(), 10);  // Asegúrate de que idLista es un número (Int)
+    const playlistId = parseInt(idLista.toString(), 10);
 
     if (isNaN(playlistId)) {
       throw new Error('ID de lista inválido');
     }
 
-    // Consultamos la lista en Prisma usando el `playlistId` como un número
     const playlist = await this.prisma.lista.findUnique({
       where: {
-        Id: playlistId,  // Aquí usamos el playlistId como número
+        Id: playlistId,
       },
     });
 
@@ -840,23 +851,21 @@ export class PlaylistsService {
       throw new NotFoundException('Usuario o lista no encontrados');
     }
 
-    // Creamos o actualizamos el like en la base de datos
     const like = await this.prisma.like.upsert({
       where: {
         EmailUsuario_IdLista: {
           EmailUsuario: email,
-          IdLista: playlistId // Asegúrate de pasar `playlistId` como número aquí también
+          IdLista: playlistId
         }
       },
       update: { tieneLike: true },
       create: {
         EmailUsuario: email,
-        IdLista: playlistId, // Aquí también usamos `playlistId` como número
+        IdLista: playlistId,
         tieneLike: true,
       },
     });
 
-    // Actualizamos el número de likes de la lista
     await this.prisma.lista.update({
       where: { Id: playlistId },
       data: { NumLikes: { increment: 1 } },
@@ -865,22 +874,24 @@ export class PlaylistsService {
     return { message: 'Like agregado a la lista' };
   }
 
-  // Función para quitar el like de una lista
+  /**
+ * Elimina el like de una playlist.
+ * @param email Correo del usuario.
+ * @param idLista ID de la playlist.
+ * @returns Mensaje de confirmación.
+ */
   async removeLikeFromPlaylist(email: string, idLista: number) {
-    // Verificamos si el usuario y la lista existen
     const user = await this.prisma.usuario.findUnique({ where: { Email: email } });
 
-    // Convertimos idLista a un número entero
-    const playlistId = parseInt(idLista.toString(), 10);  // Asegurarnos de que idLista sea un número (Int)
+    const playlistId = parseInt(idLista.toString(), 10);
 
-    // Verificamos que la conversión fue exitosa
     if (isNaN(playlistId)) {
       throw new Error('ID de lista inválido');
     }
 
     const playlist = await this.prisma.lista.findUnique({
       where: {
-        Id: playlistId,  // Usamos `playlistId` como un número
+        Id: playlistId,
       },
     });
 
@@ -888,31 +899,32 @@ export class PlaylistsService {
       throw new NotFoundException('Usuario o lista no encontrados');
     }
 
-    // Verificamos si el like existe
     const like = await this.prisma.like.findUnique({
-      where: { EmailUsuario_IdLista: { EmailUsuario: email, IdLista: playlistId } }, // Usamos playlistId aquí
+      where: { EmailUsuario_IdLista: { EmailUsuario: email, IdLista: playlistId } },
     });
 
     if (!like) {
       throw new NotFoundException('No se encontró el like en esta lista');
     }
 
-    // Eliminamos el like de la base de datos
     await this.prisma.like.delete({
-      where: { EmailUsuario_IdLista: { EmailUsuario: email, IdLista: playlistId } }, // Usamos playlistId aquí
+      where: { EmailUsuario_IdLista: { EmailUsuario: email, IdLista: playlistId } },
     });
 
-    // Actualizamos el número de likes de la lista
     await this.prisma.lista.update({
-      where: { Id: playlistId },  // Usamos playlistId aquí
+      where: { Id: playlistId },
       data: { NumLikes: { decrement: 1 } },
     });
 
     return { message: 'Like quitado de la lista' };
   }
 
+  /**
+ * Devuelve detalles de una canción y sus autores.
+ * @param idCancion ID de la canción.
+ * @returns Objeto con información de la canción.
+ */
   async getSongDetailsWithAuthors(idCancion: number) {
-    // Buscar la canción por su ID
     const song = await this.prisma.cancion.findUnique({
       where: { Id: idCancion },
       select: {
@@ -926,7 +938,6 @@ export class PlaylistsService {
       throw new NotFoundException('No se encontró la canción con el ID proporcionado.');
     }
 
-    // Obtener todos los autores de la canción
     const authors = await this.prisma.autorCancion.findMany({
       where: { IdCancion: idCancion },
       select: { NombreArtista: true },
@@ -940,8 +951,12 @@ export class PlaylistsService {
     };
   }
 
+  /**
+   * Incrementa el contador de reproducciones para canción, álbum y autores.
+   * @param songIdQuizas ID de la canción.
+   * @returns Mensaje de éxito.
+   */
   async incrementSongAlbumAndAuthorPlays(songIdQuizas: number) {
-    // Increment song plays
     const songId = typeof songIdQuizas === 'string' ? parseInt(songIdQuizas, 10) : songIdQuizas;
 
     const song = await this.prisma.cancion.update({
@@ -967,8 +982,6 @@ export class PlaylistsService {
     });
     if (!song) throw new NotFoundException('Canción no encontrada');
 
-
-    // Increment author plays
     const authors = await this.prisma.autorCancion.findMany({
       where: { IdCancion: song.Id },
       select: { NombreArtista: true },
@@ -983,8 +996,13 @@ export class PlaylistsService {
     return { message: 'Reproducciones actualizadas correctamente' };
   }
 
+  /**
+ * Reordena canciones en una playlist desde un JSON recibido.
+ * @param idPlaylist ID de la playlist.
+ * @param cancionesJson Objeto con el nuevo orden.
+ * @returns Mensaje de éxito.
+ */
   async reordenarCancionesDePlaylist(idPlaylist: number, cancionesJson: any) {
-    // 🔹 1️⃣ Comprobar que existe la playlist
     const playlist = await this.prisma.listaReproduccion.findUnique({
       where: { Id: idPlaylist },
     });
@@ -993,7 +1011,6 @@ export class PlaylistsService {
       throw new NotFoundException('La playlist no existe.');
     }
 
-    // 🔹 2️⃣ Validar el formato del JSON
     if (!cancionesJson || typeof cancionesJson !== 'object' || !Array.isArray(cancionesJson.canciones)) {
       throw new BadRequestException('El formato de la cola de reproducción no es válido.');
     }
@@ -1012,12 +1029,10 @@ export class PlaylistsService {
         throw new BadRequestException('Una o más canciones tienen un formato inválido.');
       }
     }
-    // 🔹 2️⃣ Borrar todas las filas antiguas de PosicionCancion asociadas a la playlist
     await this.prisma.posicionCancion.deleteMany({
       where: { IdLista: idPlaylist },
     });
 
-    // 🔹 3️⃣ Insertar cada canción en la nueva posición
     for (let i = 0; i < canciones.length; i++) {
       const cancion = canciones[i];
       await this.prisma.posicionCancion.create({
@@ -1034,8 +1049,13 @@ export class PlaylistsService {
     };
   }
 
+  /**
+ * Ordena canciones de una playlist por tipo (alfabético, reproducciones, etc).
+ * @param idPlaylist ID de la playlist.
+ * @param tipoFiltro Tipo de orden.
+ * @returns Array ordenado de canciones.
+ */
   async ordenarCancionesDePlaylist(idPlaylist: number, tipoFiltro: number) {
-    // 1️⃣ Obtener las canciones asociadas a la playlist
     const cancionesJson = await this.getSongsByListId(String(idPlaylist));
 
     if (!Array.isArray(cancionesJson.canciones)) {
@@ -1046,16 +1066,13 @@ export class PlaylistsService {
 
     switch (tipoFiltro) {
       case 0:
-        // 🔹 Orden predefinido por Posicion en PosicionCancion (ya se supone que vienen ordenadas)
         break;
 
       case 1:
-        // 🔹 Orden alfabético por nombre
         canciones.sort((a, b) => a.nombre.localeCompare(b.nombre));
         break;
 
       case 2:
-        // 🔹 Orden por número de reproducciones (descendente)
         canciones.sort((a, b) => b.numReproducciones - a.numReproducciones);
         break;
       default:
@@ -1065,6 +1082,13 @@ export class PlaylistsService {
     return { canciones };
   }
 
+  /**
+ * Actualiza el nombre de una playlist.
+ * @param userEmail Correo del autor.
+ * @param idPlaylist ID de la playlist.
+ * @param newName Nuevo nombre.
+ * @returns Mensaje de éxito.
+ */
   async updatePlaylistName(userEmail: string, idPlaylist: number, newName: string) {
     const playlist = await this.prisma.listaReproduccion.findUnique({
       where: { Id: idPlaylist },
@@ -1083,11 +1107,18 @@ export class PlaylistsService {
       where: { Id: idPlaylist },
       data: { Nombre: newName },
     });
-  
+
 
     return { message: 'Nombre de la playlist actualizado correctamente' };
   }
 
+  /**
+ * Actualiza la descripción de una playlist.
+ * @param userEmail Correo del autor.
+ * @param idPlaylist ID de la playlist.
+ * @param newDescription Nueva descripción.
+ * @returns Mensaje de éxito.
+ */
   async updatePlaylistDescription(userEmail: string, idPlaylist: number, newDescription: string) {
     const playlist = await this.prisma.listaReproduccion.findUnique({
       where: { Id: idPlaylist },
@@ -1105,6 +1136,14 @@ export class PlaylistsService {
     return { message: 'Descripción de la playlist actualizada correctamente' };
   }
 
+
+  /**
+   * Actualiza la privacidad de una playlist.
+   * @param userEmail Correo del autor.
+   * @param idPlaylist ID de la playlist.
+   * @param tipoPrivacidad Nuevo valor de privacidad.
+   * @returns Mensaje de éxito.
+   */
   async updatePlaylistPrivacy(userEmail: string, idPlaylist: number, tipoPrivacidad: string) {
     const tiposValidos = ['publico', 'privado', 'protegido'];
 

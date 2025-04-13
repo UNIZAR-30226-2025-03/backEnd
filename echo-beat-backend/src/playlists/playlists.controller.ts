@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, UploadedFile, UseInterceptors, HttpCode, HttpStatus, NotFoundException, BadRequestException, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, UploadedFile, UseInterceptors, HttpCode, HttpStatus, NotFoundException, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PlaylistsService } from './playlists.service';
@@ -10,14 +10,20 @@ import { ApiParam } from '@nestjs/swagger';
 export class PlaylistsController {
   constructor(private readonly playlistsService: PlaylistsService) { }
 
+  /**
+ * Crea una nueva playlist con una imagen subida.
+ * 
+ * @param input - Datos de la playlist: email del usuario, nombre, descripción y tipo de privacidad.
+ * @param file - Archivo de imagen de la portada.
+ * @returns La playlist creada.
+ */
   @ApiOperation({
-    summary: 'Crear una nueva playlist',
-    description: '⚠️ Esta API no puede probarse en Swagger porque requiere la carga de archivos mediante `multipart/form-data` desde una aplicación cliente.'
+    summary: 'Crear una nueva playlist'
   })
   @ApiResponse({ status: 201, description: 'Playlist creada correctamente.' })
   @ApiResponse({ status: 400, description: 'Datos inválidos o tipo de privacidad incorrecto.' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
-  @ApiConsumes('multipart/form-data') // Indicar que la API consume archivos
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Datos para crear una playlist',
     schema: {
@@ -47,9 +53,15 @@ export class PlaylistsController {
     );
   }
 
+  /**
+ * Crea una nueva playlist con una imagen proporcionada por URL.
+ * 
+ * @param input - Datos de la playlist y la URL de la imagen.
+ * @returns La playlist creada.
+ */
   @ApiOperation({
     summary: 'Crear una nueva playlist con una imagen predefinida (URL)',
-    description: '⚠️ Esta API permite crear una playlist usando un enlace a una imagen predefinida (URL).'
+    description: 'Esta API permite crear una playlist usando un enlace a una imagen predefinida (URL).'
   })
   @ApiResponse({ status: 201, description: 'Playlist creada correctamente.' })
   @ApiResponse({ status: 400, description: 'Datos inválidos o tipo de privacidad incorrecto.' })
@@ -63,7 +75,7 @@ export class PlaylistsController {
         nombrePlaylist: { type: 'string', example: 'Mis Favoritos' },
         descripcionPlaylist: { type: 'string', example: 'Playlist con mis canciones favoritas' },
         tipoPrivacidad: { type: 'string', enum: ['publico', 'privado', 'protegido'], example: 'publico' },
-        imageUrl: { type: 'string', example: 'https://example.com/path/to/image.jpg' }, // URL de la imagen
+        imageUrl: { type: 'string', example: 'https://example.com/path/to/image.jpg' },
       },
     },
   })
@@ -81,7 +93,12 @@ export class PlaylistsController {
     );
   }
 
-
+  /**
+   * Obtiene todas las playlists de un usuario.
+   * 
+   * @param userEmail - Email del usuario.
+   * @returns Lista de playlists creadas por el usuario.
+   */
   @ApiOperation({ summary: 'Obtiene todas las playlists creadas por un usuario' })
   @ApiResponse({ status: 200, description: 'Retorna un arreglo de playlists.' })
   @Get('user/:userEmail')
@@ -89,6 +106,12 @@ export class PlaylistsController {
     return await this.playlistsService.findAllByUser(userEmail);
   }
 
+  /**
+ * Devuelve todas las canciones asociadas a una playlist.
+ * 
+ * @param id - ID de la playlist.
+ * @returns Canciones en la playlist.
+ */
   @ApiOperation({ summary: 'Obtener todas las canciones de una playlist' })
   @ApiResponse({ status: 200, description: 'Devuelve todas las canciones de la playlist' })
   @ApiResponse({ status: 404, description: 'No se encontró la playlist' })
@@ -97,6 +120,12 @@ export class PlaylistsController {
     return await this.playlistsService.getSongsByListId(id);
   }
 
+  /**
+ * Elimina una playlist específica de un usuario.
+ * 
+ * @param body - Email del usuario y ID de la playlist.
+ * @returns Mensaje de éxito o error.
+ */
   @ApiOperation({ summary: 'Eliminar una playlist por su ID y email de usuario' })
   @ApiResponse({ status: 200, description: 'Playlist eliminada correctamente.' })
   @ApiResponse({ status: 404, description: 'Playlist no encontrada.' })
@@ -120,7 +149,11 @@ export class PlaylistsController {
     return this.playlistsService.deletePlaylist(body.userEmail, body.idLista);
   }
 
-
+  /**
+   * Obtiene todas las imágenes por defecto para playlists desde Azure.
+   * 
+   * @returns Lista de URLs.
+   */
   @ApiOperation({ summary: 'Obtener todas las URLs de imágenes del contenedor predeterminado de lista' })
   @ApiResponse({ status: 200, description: 'Lista de URLs de imágenes obtenidas correctamente.' })
   @ApiResponse({ status: 500, description: 'Error interno al acceder al contenedor de Azure.' })
@@ -129,6 +162,12 @@ export class PlaylistsController {
     return this.playlistsService.getAllListDefaultImageUrls();
   }
 
+  /**
+ * Añade una canción al final de una playlist.
+ * 
+ * @param input - ID de la playlist y ID de la canción.
+ * @returns Detalles de la canción añadida.
+ */
   @ApiOperation({ summary: 'Añadir una canción a la playlist en la última posición' })
   @ApiResponse({ status: 200, description: 'Canción añadida correctamente a la playlist.' })
   @ApiResponse({ status: 404, description: 'Playlist o canción no encontrada.' })
@@ -151,6 +190,12 @@ export class PlaylistsController {
     return this.playlistsService.addSongToPlaylist(input.idLista, input.songId);
   }
 
+  /**
+ * Elimina una canción de la playlist y reordena las posiciones.
+ * 
+ * @param input - ID de la playlist y canción.
+ * @returns Mensaje de éxito.
+ */
   @ApiOperation({ summary: 'Eliminar una canción de la playlist y ajustar las posiciones' })
   @ApiResponse({ status: 200, description: 'Canción eliminada correctamente y posiciones ajustadas.' })
   @ApiResponse({ status: 404, description: 'Lista de reproducción o canción no encontrada.' })
@@ -171,13 +216,18 @@ export class PlaylistsController {
     return this.playlistsService.deleteSongFromPlaylist(input.idLista, input.songId);
   }
 
+  /**
+ * Obtiene los detalles de una lista.
+ * 
+ * @param idList - ID de la lista.
+ * @returns Información de la lista.
+ */
   @ApiOperation({ summary: 'Obtener detalles de una lista a partir de su ID' })
   @ApiResponse({ status: 200, description: 'lista encontrada.', type: Object })
   @ApiResponse({ status: 404, description: 'lista no encontrada.' })
   @Get('lista/:idList')
   @HttpCode(HttpStatus.OK)
   async getListDetails(@Param('idList') idList: string) {
-    // Convertir idList a número
     const ListId = Number(idList);
 
     if (isNaN(ListId)) {
@@ -187,6 +237,12 @@ export class PlaylistsController {
     return this.playlistsService.getListDetails(ListId);
   }
 
+  /**
+ * Obtiene los detalles de un álbum.
+ * 
+ * @param idLista - ID de la lista asociada al álbum.
+ * @returns Detalles del álbum.
+ */
   @ApiOperation({ summary: 'Obtener detalles de un álbum a partir de su ID de lista' })
   @ApiParam({ name: 'idLista', type: Number, description: 'ID de la lista asociada al álbum' })
   @ApiResponse({
@@ -218,14 +274,18 @@ export class PlaylistsController {
     return this.playlistsService.getAlbumDetails(listId);
   }
 
-
+  /**
+   * Obtiene los detalles de una playlist.
+   * 
+   * @param idPlaylist - ID de la playlist.
+   * @returns Detalles completos de la playlist.
+   */
   @ApiOperation({ summary: 'Obtener detalles de una playlist a partir de su ID de playlist' })
   @ApiResponse({ status: 200, description: 'Playlist encontrada.', type: Object })
   @ApiResponse({ status: 404, description: 'Playlist no encontrada.' })
   @Get('playlist/:idPlaylist')
   @HttpCode(HttpStatus.OK)
   async getPlaylistDetails(@Param('idPlaylist') idPlaylist: string) {
-    // Convertir idList a número
     const ListId = Number(idPlaylist);
 
     if (isNaN(ListId)) {
@@ -235,6 +295,12 @@ export class PlaylistsController {
     return this.playlistsService.getPlaylistDetails(ListId);
   }
 
+  /**
+ * Actualiza la portada de una playlist con una imagen predeterminada.
+ * 
+ * @param body - Email del usuario, ID de la playlist e imagen URL.
+ * @returns Resultado de la actualización.
+ */
   @ApiOperation({
     summary: 'Actualizar la portada de una playlist con una imagen predefinida',
     description: 'Actualiza la portada de la playlist con la URL proporcionada si el usuario es el autor.',
@@ -266,6 +332,14 @@ export class PlaylistsController {
     );
   }
 
+  /**
+ * Actualiza la foto de portada de una playlist subiendo un archivo.
+ * 
+ * @param idLista - ID de la playlist.
+ * @param input - Email del usuario.
+ * @param file - Imagen a subir.
+ * @returns Resultado de la actualización.
+ */
   @ApiOperation({
     summary: 'Actualizar la foto de una playlist a partir de su ID',
     description: 'Sube una nueva foto para una playlist existente y elimina la foto anterior si existe.',
@@ -273,7 +347,7 @@ export class PlaylistsController {
   @ApiResponse({ status: 200, description: 'Foto de la playlist actualizada correctamente.' })
   @ApiResponse({ status: 404, description: 'Lista no encontrada o la lista no es una playlist.' })
   @ApiResponse({ status: 403, description: 'No tienes permisos para actualizar esta playlist.' })
-  @ApiConsumes('multipart/form-data') // Indicar que la API consume archivos
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Datos para actualizar la foto de la playlist',
     schema: {
@@ -288,13 +362,19 @@ export class PlaylistsController {
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('file'))
   async updatePlaylistPhoto(
-    @Param('idLista') idLista: number,  // Recibimos idLista desde los parámetros de la URL
-    @Body() input: { userEmail: string },  // Recibimos userEmail desde el cuerpo
+    @Param('idLista') idLista: number,
+    @Body() input: { userEmail: string },
     @UploadedFile() file: Express.Multer.File,
   ) {
     return await this.playlistsService.updatePlaylistPhoto(Number(idLista), file, input.userEmail);
   }
 
+  /**
+ * Devuelve la duración de una canción.
+ * 
+ * @param idSong - ID de la canción.
+ * @returns Duración en segundos.
+ */
   @ApiOperation({ summary: 'Obtener duración de la canción a partir de su id' })
   @ApiResponse({ status: 200, description: 'Duración de la canción.', type: Number })
   @ApiResponse({ status: 404, description: 'Canción no encontrada.' })
@@ -305,18 +385,22 @@ export class PlaylistsController {
     return this.playlistsService.getSongLength(idSong);
   }
 
+  /**
+ * Obtiene las listas favoritas de un usuario.
+ * 
+ * @param email - Email del usuario.
+ * @returns Listas liked.
+ */
   @ApiOperation({ summary: 'Obtener listas liked por un usuario' })
   @ApiResponse({
     status: 200,
     description: 'Listas liked por el usuario',
   })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  @Get('liked/:email') // Esta ruta recibe un `email` como parámetro
+  @Get('liked/:email')
   async getLikedLists(@Param('email') email: string) {
-    // Llamamos al servicio para obtener las listas liked por el usuario
     const likedLists = await this.playlistsService.getLikedListsByUser(email);
 
-    // Si no encontramos listas liked, lanzamos una excepción NotFoundException
     if (!likedLists.length) {
       throw new NotFoundException('No se encontraron listas liked para este usuario');
     }
@@ -324,6 +408,13 @@ export class PlaylistsController {
     return likedLists;
   }
 
+  /**
+ * Añade un like a una playlist.
+ * 
+ * @param email - Email del usuario.
+ * @param idLista - ID de la playlist.
+ * @returns Confirmación del like.
+ */
   @ApiOperation({ summary: 'Dar like a una lista de reproducción' })
   @ApiResponse({
     status: 200,
@@ -339,6 +430,13 @@ export class PlaylistsController {
     return likeResponse;
   }
 
+  /**
+ * Elimina un like de una playlist.
+ * 
+ * @param email - Email del usuario.
+ * @param idLista - ID de la playlist.
+ * @returns Confirmación de eliminación del like.
+ */
   @ApiOperation({ summary: 'Quitar like de una lista de reproducción' })
   @ApiResponse({
     status: 200,
@@ -354,13 +452,18 @@ export class PlaylistsController {
     return removeResponse;
   }
 
+  /**
+ * Devuelve detalles de una canción con sus autores.
+ * 
+ * @param idCancion - ID de la canción.
+ * @returns Detalles y autores.
+ */
   @ApiOperation({ summary: 'Obtener detalles de una canción y sus autores por ID' })
   @ApiResponse({ status: 200, description: 'Detalles de la canción con sus autores.' })
   @ApiResponse({ status: 404, description: 'Canción no encontrada o el ID no es válido.' })
   @Get('song-details/:idCancion')
   @HttpCode(HttpStatus.OK)
   async getSongDetailsWithAuthors(@Param('idCancion') idCancion: string) {
-    // Convertimos el parámetro idCancion a número antes de pasarlo al servicio
     const songId = parseInt(idCancion, 10);
 
     if (isNaN(songId)) {
@@ -370,7 +473,12 @@ export class PlaylistsController {
     return this.playlistsService.getSongDetailsWithAuthors(songId);
   }
 
-
+  /**
+   * Reordena las canciones dentro de una playlist.
+   * 
+   * @param body - ID de la playlist y nuevo JSON con orden.
+   * @returns Confirmación de orden actualizado.
+   */
   @ApiOperation({ summary: 'Reordenar canciones de una playlist' })
   @ApiResponse({ status: 200, description: 'Orden de canciones actualizado correctamente.' })
   @ApiResponse({ status: 400, description: 'Formato inválido del JSON.' })
@@ -419,6 +527,13 @@ export class PlaylistsController {
     return this.playlistsService.reordenarCancionesDePlaylist(body.idPlaylist, body.cancionesJson);
   }
 
+  /**
+ * Devuelve las canciones de una playlist ordenadas por un criterio.
+ * 
+ * @param idPlaylist - ID de la playlist.
+ * @param tipoFiltro - Tipo de orden: posición, nombre o reproducciones.
+ * @returns Canciones ordenadas.
+ */
   @Get('ordenar-canciones/:idPlaylist/:tipoFiltro')
   @ApiOperation({
     summary: 'Obtener canciones de una playlist ordenadas según el filtro',
@@ -445,65 +560,80 @@ export class PlaylistsController {
   ) {
     return this.playlistsService.ordenarCancionesDePlaylist(idPlaylist, tipoFiltro);
   }
-  
 
-@ApiOperation({ summary: 'Cambiar el nombre de una playlist' })
-@ApiResponse({ status: 200, description: 'Nombre actualizado correctamente.' })
-@ApiResponse({ status: 400, description: 'Error al actualizar el nombre.' })
-@ApiBody({
-  description: 'Datos para actualizar el nombre',
-  schema: {
-    type: 'object',
-    properties: {
-      userEmail: { type: 'string', example: 'usuario@example.com' },
-      idPlaylist: { type: 'number', example: 1 },
-      nuevoNombre: { type: 'string', example: 'Mis nuevas canciones' },
+  /**
+   * Actualiza el nombre de una playlist.
+   * 
+   * @param body - Email, ID y nuevo nombre.
+   * @returns Confirmación del cambio.
+   */
+  @ApiOperation({ summary: 'Cambiar el nombre de una playlist' })
+  @ApiResponse({ status: 200, description: 'Nombre actualizado correctamente.' })
+  @ApiResponse({ status: 400, description: 'Error al actualizar el nombre.' })
+  @ApiBody({
+    description: 'Datos para actualizar el nombre',
+    schema: {
+      type: 'object',
+      properties: {
+        userEmail: { type: 'string', example: 'usuario@example.com' },
+        idPlaylist: { type: 'number', example: 1 },
+        nuevoNombre: { type: 'string', example: 'Mis nuevas canciones' },
+      },
     },
-  },
-})
-@Post('update-nombre')
-async actualizarNombrePlaylist(@Body() body: { userEmail: string, idPlaylist: number, nuevoNombre: string }) {
-  return this.playlistsService.updatePlaylistName(body.userEmail, body.idPlaylist, body.nuevoNombre);
-}
+  })
+  @Post('update-nombre')
+  async actualizarNombrePlaylist(@Body() body: { userEmail: string, idPlaylist: number, nuevoNombre: string }) {
+    return this.playlistsService.updatePlaylistName(body.userEmail, body.idPlaylist, body.nuevoNombre);
+  }
 
-
-@ApiOperation({ summary: 'Cambiar la descripción de una playlist' })
-@ApiResponse({ status: 200, description: 'Descripción actualizada correctamente.' })
-@ApiResponse({ status: 400, description: 'Error al actualizar la descripción.' })
-@ApiBody({
-  description: 'Datos para actualizar la descripción',
-  schema: {
-    type: 'object',
-    properties: {
-      userEmail: { type: 'string', example: 'usuario@example.com' },
-      idPlaylist: { type: 'number', example: 1 },
-      nuevaDescripcion: { type: 'string', example: 'Una playlist llena de temazos' },
+  /**
+   * Actualiza la descripción de una playlist.
+   * 
+   * @param body - Email, ID y nueva descripción.
+   * @returns Confirmación del cambio.
+   */
+  @ApiOperation({ summary: 'Cambiar la descripción de una playlist' })
+  @ApiResponse({ status: 200, description: 'Descripción actualizada correctamente.' })
+  @ApiResponse({ status: 400, description: 'Error al actualizar la descripción.' })
+  @ApiBody({
+    description: 'Datos para actualizar la descripción',
+    schema: {
+      type: 'object',
+      properties: {
+        userEmail: { type: 'string', example: 'usuario@example.com' },
+        idPlaylist: { type: 'number', example: 1 },
+        nuevaDescripcion: { type: 'string', example: 'Una playlist llena de temazos' },
+      },
     },
-  },
-})
-@Post('update-descripcion')
-async actualizarDescripcionPlaylist(@Body() body: { userEmail: string, idPlaylist: number, nuevaDescripcion: string }) {
-  return this.playlistsService.updatePlaylistDescription(body.userEmail, body.idPlaylist, body.nuevaDescripcion);
-}
+  })
+  @Post('update-descripcion')
+  async actualizarDescripcionPlaylist(@Body() body: { userEmail: string, idPlaylist: number, nuevaDescripcion: string }) {
+    return this.playlistsService.updatePlaylistDescription(body.userEmail, body.idPlaylist, body.nuevaDescripcion);
+  }
 
-
-@ApiOperation({ summary: 'Cambiar la privacidad de una playlist' })
-@ApiResponse({ status: 200, description: 'Privacidad actualizada correctamente.' })
-@ApiResponse({ status: 400, description: 'Error al actualizar la privacidad.' })
-@ApiBody({
-  description: 'Datos para actualizar la privacidad',
-  schema: {
-    type: 'object',
-    properties: {
-      userEmail: { type: 'string', example: 'usuario@example.com' },
-      idPlaylist: { type: 'number', example: 1 },
-      nuevoTipoPrivacidad: { type: 'string', enum: ['publico', 'privado', 'protegido'], example: 'publico' },
+  /**
+   * Cambia la privacidad de una playlist.
+   * 
+   * @param body - Email, ID y nuevo tipo de privacidad.
+   * @returns Confirmación del cambio.
+   */
+  @ApiOperation({ summary: 'Cambiar la privacidad de una playlist' })
+  @ApiResponse({ status: 200, description: 'Privacidad actualizada correctamente.' })
+  @ApiResponse({ status: 400, description: 'Error al actualizar la privacidad.' })
+  @ApiBody({
+    description: 'Datos para actualizar la privacidad',
+    schema: {
+      type: 'object',
+      properties: {
+        userEmail: { type: 'string', example: 'usuario@example.com' },
+        idPlaylist: { type: 'number', example: 1 },
+        nuevoTipoPrivacidad: { type: 'string', enum: ['publico', 'privado', 'protegido'], example: 'publico' },
+      },
     },
-  },
-})
-@Post('update-privacidad')
-async actualizarPrivacidadPlaylist(@Body() body: { userEmail: string, idPlaylist: number, nuevoTipoPrivacidad: string }) {
-  return this.playlistsService.updatePlaylistPrivacy(body.userEmail, body.idPlaylist, body.nuevoTipoPrivacidad);
-}
+  })
+  @Post('update-privacidad')
+  async actualizarPrivacidadPlaylist(@Body() body: { userEmail: string, idPlaylist: number, nuevoTipoPrivacidad: string }) {
+    return this.playlistsService.updatePlaylistPrivacy(body.userEmail, body.idPlaylist, body.nuevoTipoPrivacidad);
+  }
 
 }

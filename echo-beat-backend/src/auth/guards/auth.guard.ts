@@ -5,14 +5,22 @@ import { JwtService } from "@nestjs/jwt";
 export class AuthGuard implements CanActivate {
     constructor(
         private jwtService: JwtService
-    ) {}
+    ) { }
 
+    /**
+ * Verifica si una solicitud puede continuar en función de un token JWT válido.
+ * Extrae el token del header `Authorization`, lo valida y asigna el usuario a la request.
+ *
+ * @param context - Contexto de ejecución que contiene detalles sobre la solicitud actual.
+ * @returns Una promesa que resuelve en `true` si el token es válido, o lanza una excepción si no lo es.
+ * @throws UnauthorizedException si no hay token o el token es inválido.
+ */
     async canActivate(context: ExecutionContext) {
         const request = context.switchToHttp().getRequest();
         const authorization = request.headers.authorization;
         const token = authorization?.split(' ')[1]
 
-        if(!token){
+        if (!token) {
             throw new UnauthorizedException();
         }
         try {
@@ -21,7 +29,7 @@ export class AuthGuard implements CanActivate {
                 Email: tokenPayload.Email
             }
             return true;
-        } catch(error){
+        } catch (error) {
             throw new UnauthorizedException();
         }
     }

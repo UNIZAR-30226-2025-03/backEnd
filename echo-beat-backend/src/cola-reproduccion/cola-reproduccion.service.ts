@@ -5,8 +5,15 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ColaReproduccionService {
     constructor(private prisma: PrismaService) { }
 
+    /**
+ * Inicia una nueva cola de reproducción para un usuario, opcionalmente en orden aleatorio.
+ * 
+ * @param userEmail - Email del usuario.
+ * @param reproduccionAleatoria - Indica si se debe reproducir en orden aleatorio.
+ * @param colaReproduccion - Objeto JSON con la cola de canciones.
+ * @returns Un mensaje y el ID de la primera canción de la cola.
+ */
     async iniciarColaReproduccion(userEmail: string, reproduccionAleatoria: boolean, colaReproduccion: any) {
-        // 🔹 1️⃣ Comprobar que el usuario exista
         const user = await this.prisma.usuario.findUnique({
             where: { Email: userEmail },
             select: { Email: true },
@@ -16,7 +23,6 @@ export class ColaReproduccionService {
             throw new NotFoundException('Usuario no encontrado');
         }
 
-        // 🔹 2️⃣ Validar el formato del JSON
         if (!colaReproduccion || typeof colaReproduccion !== 'object' || !Array.isArray(colaReproduccion.canciones)) {
             throw new BadRequestException('El formato de la cola de reproducción no es válido.');
         }
@@ -36,7 +42,6 @@ export class ColaReproduccionService {
             }
         }
 
-        // 🔹 3️⃣ Si reproducción aleatoria está activa, barajar las canciones
         if (reproduccionAleatoria) {
             for (let i = canciones.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -44,11 +49,10 @@ export class ColaReproduccionService {
             }
         }
 
-        // 🔹 4️⃣ Guardar la nueva cola en la BD y poner PosicionCola a 0
         await this.prisma.usuario.update({
             where: { Email: userEmail },
             data: {
-                ColaReproduccion: { canciones }, // Guardamos el JSON reordenado o como estaba
+                ColaReproduccion: { canciones },
                 PosicionCola: 0,
             },
         });
@@ -61,6 +65,16 @@ export class ColaReproduccionService {
         };
     }
 
+    /**
+ * Inicia una nueva cola de reproducción desde una posición específica.
+ * Si `reproduccionAleatoria` es true, reorganiza la cola manteniendo esa canción en primera posición.
+ * 
+ * @param userEmail - Email del usuario.
+ * @param reproduccionAleatoria - Indica si se debe reproducir en orden aleatorio.
+ * @param colaReproduccion - Objeto JSON con la cola de canciones.
+ * @param posicionCola - Índice desde el que iniciar la reproducción.
+ * @returns Mensaje y el ID de la primera canción.
+ */
     async iniciarColaReproduccionPorPosicion(userEmail: string, reproduccionAleatoria: boolean, colaReproduccion: any, posicionCola: number) {
         const user = await this.prisma.usuario.findUnique({
             where: { Email: userEmail },
@@ -94,7 +108,6 @@ export class ColaReproduccionService {
             posicionCola = 0;
         }
 
-        // Update en la tabla usuario
         await this.prisma.usuario.update({
             where: { Email: userEmail },
             data: {
@@ -111,8 +124,13 @@ export class ColaReproduccionService {
         };
     }
 
+    /**
+ * Obtiene la cola de reproducción actual del usuario y la posición actual.
+ * 
+ * @param userEmail - Email del usuario.
+ * @returns La cola de reproducción y la posición actual.
+ */
     async getUserQueue(userEmail: string) {
-        // Verificamos que el usuario exista y recuperamos la cola + posición
         const user = await this.prisma.usuario.findUnique({
             where: { Email: userEmail },
             select: {
@@ -131,6 +149,12 @@ export class ColaReproduccionService {
         };
     }
 
+    /**
+ * Avanza a la siguiente canción en la cola (comportamiento circular).
+ * 
+ * @param userEmail - Email del usuario.
+ * @returns El ID de la siguiente canción.
+ */
     async siguienteCancion(userEmail: string) {
         const user = await this.prisma.usuario.findUnique({
             where: { Email: userEmail },
@@ -150,7 +174,6 @@ export class ColaReproduccionService {
             throw new BadRequestException('La cola de reproducción está vacía o mal formada.');
         }
 
-        // Calculamos la nueva posición (circular)
         let nuevaPosicion = ((user.PosicionCola ?? 0) + 1) % cola.canciones.length;
 
         const nextSong = cola.canciones[nuevaPosicion];
@@ -159,7 +182,6 @@ export class ColaReproduccionService {
             throw new BadRequestException('Formato de canción inválido.');
         }
 
-        // Actualizamos la nueva posición en la base de datos
         await this.prisma.usuario.update({
             where: { Email: userEmail },
             data: { PosicionCola: nuevaPosicion },
@@ -170,6 +192,12 @@ export class ColaReproduccionService {
         };
     }
 
+    /**
+ * Retrocede a la canción anterior en la cola. Si está en la primera canción, no hace nada.
+ * 
+ * @param userEmail - Email del usuario.
+ * @returns El ID de la canción anterior.
+ */
     async cancionAnterior(userEmail: string) {
         const user = await this.prisma.usuario.findUnique({
             where: { Email: userEmail },
@@ -191,7 +219,6 @@ export class ColaReproduccionService {
 
         let nuevaPosicion = user.PosicionCola ?? 0;
 
-        // Si NO estamos en la posición 0, retrocedemos una posición
         if (nuevaPosicion > 0) {
             nuevaPosicion--;
         }
@@ -202,7 +229,6 @@ export class ColaReproduccionService {
             throw new BadRequestException('Formato de canción inválido.');
         }
 
-        // Actualizamos la nueva posición en la base de datos
         await this.prisma.usuario.update({
             where: { Email: userEmail },
             data: { PosicionCola: nuevaPosicion },
@@ -213,8 +239,14 @@ export class ColaReproduccionService {
         };
     }
 
+    /**
+ * Inserta una nueva canción después de la posición actual en la cola.
+ * 
+ * @param userEmail - Email del usuario.
+ * @param songId - ID de la canción a insertar.
+ * @returns La nueva cola de reproducción.
+ */
     async addSongToQueue(userEmail: string, songId: number) {
-        // Verificamos si el usuario existe
         const user = await this.prisma.usuario.findUnique({
             where: { Email: userEmail },
             select: { ColaReproduccion: true, PosicionCola: true },
@@ -231,7 +263,6 @@ export class ColaReproduccionService {
             throw new BadRequestException('Cola de reproducción inválida o vacía');
         }
 
-        // Verificamos si la canción existe
         const cancion = await this.prisma.cancion.findUnique({
             where: { Id: songId },
             select: {
@@ -248,7 +279,6 @@ export class ColaReproduccionService {
             throw new NotFoundException('Canción no encontrada');
         }
 
-        // Creamos el objeto con el formato esperado
         const nuevaCancion = {
             id: cancion.Id,
             nombre: cancion.Nombre,
@@ -258,10 +288,8 @@ export class ColaReproduccionService {
             portada: cancion.Portada,
         };
 
-        // Insertamos la canción justo después de la posición actual
         cola.canciones.splice(posicionActual + 1, 0, nuevaCancion);
 
-        // Guardamos la nueva cola en la BD
         await this.prisma.usuario.update({
             where: { Email: userEmail },
             data: {
@@ -272,8 +300,14 @@ export class ColaReproduccionService {
         return cola;
     }
 
+    /**
+ * Elimina una canción de una posición específica en la cola de reproducción.
+ * 
+ * @param userEmail - Email del usuario.
+ * @param posicionCola - Índice de la canción a eliminar.
+ * @returns La cola actualizada.
+ */
     async deleteSongFromQueue(userEmail: string, posicionCola: number) {
-        // Obtener el usuario
         const user = await this.prisma.usuario.findUnique({
             where: { Email: userEmail },
             select: {
@@ -286,17 +320,14 @@ export class ColaReproduccionService {
             throw new NotFoundException('Usuario no encontrado o no tiene cola de reproducción.');
         }
 
-        // Verificar que la cola sea un objeto con canciones
         const cola = user.ColaReproduccion as { canciones: any[] };
 
         if (!Array.isArray(cola.canciones) || cola.canciones.length <= posicionCola || posicionCola < 0) {
             throw new BadRequestException('Posición inválida o no existe una canción en esa posición.');
         }
 
-        // Eliminar la canción de la posición dada
         cola.canciones.splice(posicionCola, 1);
 
-        // Actualizar la cola de reproducción en la base de datos
         await this.prisma.usuario.update({
             where: { Email: userEmail },
             data: { ColaReproduccion: cola },
@@ -305,7 +336,12 @@ export class ColaReproduccionService {
         return cola;
     }
 
-    // API para vaciar la cola de reproducción de un usuario
+    /**
+ * Vacía por completo la cola de reproducción del usuario.
+ * 
+ * @param userEmail - Email del usuario.
+ * @returns Un mensaje de éxito.
+ */
     async clearQueue(userEmail: string) {
         const user = await this.prisma.usuario.findUnique({
             where: { Email: userEmail },
@@ -315,10 +351,9 @@ export class ColaReproduccionService {
             throw new NotFoundException('Usuario no encontrado');
         }
 
-        // Vaciar el array de canciones en ColaReproduccion
         await this.prisma.usuario.update({
             where: { Email: userEmail },
-            data: { ColaReproduccion: { canciones: [] }, PosicionCola: 0 }, // Establecer el array de canciones vacío
+            data: { ColaReproduccion: { canciones: [] }, PosicionCola: 0 },
         });
 
         return { message: 'Cola de reproducción vacía correctamente' };

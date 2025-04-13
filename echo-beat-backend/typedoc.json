@@ -1,0 +1,11 @@
+{
+    "entryPoints": ["src"],              // Carpeta raíz de tu código fuente
+    "entryPointStrategy": "expand",
+    "out": "docs",                       // Carpeta donde se generará la documentación
+    "excludePrivate": true,             // Excluye métodos privados
+    "excludeInternal": true,            // Excluye métodos marcados como @internal
+    "includeVersion": true,             // Muestra la versión del proyecto
+    "tsconfig": "./tsconfig.json",      // Usa la configuración de tu proyecto
+    "exclude": ["**/*.spec.ts", "**/dto/**", "**/prisma/**"]
+  }
+  

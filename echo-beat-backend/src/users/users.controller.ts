@@ -6,8 +6,14 @@ import { ConflictException, InternalServerErrorException, NotFoundException, Bad
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
+  /**
+ * Registra un nuevo usuario en el sistema.
+ * 
+ * @param input - Datos del nuevo usuario (email, nombre completo, contraseña, nick, fecha de nacimiento).
+ * @returns El usuario creado o lanza excepciones si hay errores de validación.
+ */
   @ApiOperation({ summary: 'Registrar un nuevo usuario' })
   @ApiResponse({ status: 201, description: 'Usuario registrado exitosamente.' })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
@@ -42,9 +48,9 @@ export class UsersController {
         input.NombreCompleto,
         input.Password,
         input.Nick,
-        new Date(input.FechaNacimiento), // Convertimos de string a Date
+        new Date(input.FechaNacimiento),
       );
-      
+
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException('El Nick o Email ya están en uso.');
@@ -54,27 +60,37 @@ export class UsersController {
     }
   }
 
+  /**
+ * Devuelve la primera canción de la cola de reproducción de un usuario.
+ * 
+ * @param Email - Email del usuario.
+ * @returns Canción o excepción si no hay cola o usuario no existe.
+ */
   @ApiOperation({
     summary: 'Obtener la primera canción de la cola de reproducción de un usuario',
     description: 'Esta API devuelve la primera canción de la cola de reproducción de un usuario.',
   })
-  @ApiResponse({status: 200, description: 'Canción obtenida correctamente.'})
+  @ApiResponse({ status: 200, description: 'Canción obtenida correctamente.' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado o cola vacía.' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
   @Get('first-song')
   @HttpCode(HttpStatus.OK)
   async getUserFirstSongFromQueue(@Query('Email') Email: string) {
     try {
-      // Llamamos al servicio para obtener la primera canción de la cola de reproducción
       return this.usersService.getUserFirstSongFromQueue(Email);
     } catch (error) {
-      // Manejo específico del error de cola vacía
       if (error.message === 'No se encontró la cola de reproducción del usuario o está vacía.') {
         throw new NotFoundException('Usuario no encontrado o cola vacía.');
       }
     }
   }
 
+  /**
+ * Devuelve el nick de un usuario.
+ * 
+ * @param userEmail - Correo electrónico del usuario.
+ * @returns Nick del usuario.
+ */
   @ApiOperation({ summary: 'Obtener el nick de un usuario a partir de su correo' })
   @ApiResponse({ status: 200, description: 'Datos obtenidos correctamente.' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
@@ -83,6 +99,12 @@ export class UsersController {
     return this.usersService.getUserNick(userEmail);
   }
 
+  /**
+ * Devuelve la información del usuario (Email, Nick, Nombre, etc).
+ * 
+ * @param userEmail - Email del usuario.
+ * @returns Información básica del usuario.
+ */
   @ApiOperation({ summary: 'Obtener de un usuario sus credenciales' })
   @ApiResponse({ status: 200, description: 'Datos obtenidos correctamente.' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
@@ -91,25 +113,38 @@ export class UsersController {
     return this.usersService.getUser(userEmail);
   }
 
+  /**
+ * Cambia el nick de un usuario.
+ * 
+ * @param userEmail - Email del usuario.
+ * @param Nick - Nuevo nick.
+ * @returns Mensaje de éxito o conflicto si el nick ya está en uso.
+ */
   @ApiOperation({ summary: 'Modificar el Nick de un usuario' })
   @ApiResponse({ status: 200, description: 'Datos actualizados correctamente.' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
   @ApiResponse({ status: 409, description: 'El Nick ya está en uso.' })
   @Post('change-nick')
   async updateUserNick(@Query('userEmail') userEmail: string,
-                        @Query('Nick') Nick: string) {
+    @Query('Nick') Nick: string) {
     return this.usersService.updateUserNick(userEmail, Nick);
   }
 
-  @ApiOperation({ 
-    summary: 'Actualizar la foto de perfil de un usuario', 
-    description: '⚠️ Esta API no puede probarse en Swagger porque requiere la carga de archivos mediante `multipart/form-data` desde una aplicación cliente.' 
+  /**
+ * Sube y actualiza la foto de perfil del usuario.
+ * 
+ * @param input - Email del usuario.
+ * @param file - Archivo de imagen subido.
+ * @returns Resultado de la actualización.
+ */
+  @ApiOperation({
+    summary: 'Actualizar la foto de perfil de un usuario'
   })
   @ApiResponse({ status: 200, description: 'Foto actualizada correctamente.' })
-  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })  // Usuario no encontrado
-  @ApiResponse({ status: 409, description: 'Error al procesar la foto.' })  // Error con la foto
-  @ApiResponse({ status: 500, description: 'Error interno del servidor.' })  // Error interno
-  @ApiConsumes('multipart/form-data') // Indicar que la API consume archivos
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  @ApiResponse({ status: 409, description: 'Error al procesar la foto.' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Datos para crear una playlist',
     schema: {
@@ -121,7 +156,7 @@ export class UsersController {
     },
   })
   @Post('update-photo')
-  @UseInterceptors(FileInterceptor('file')) // Usa Multer para interceptar el archivo
+  @UseInterceptors(FileInterceptor('file'))
   async updateUserPhoto(
     @Body() input: { Email: string },
     @UploadedFile() file: Express.Multer.File
@@ -129,6 +164,12 @@ export class UsersController {
     return this.usersService.updateUserPhoto(input.Email, file);
   }
 
+  /**
+ * Actualiza la foto del usuario con una imagen predefinida.
+ * 
+ * @param input - Email del usuario y URL de la imagen predefinida.
+ * @returns Resultado de la operación.
+ */
   @ApiOperation({
     summary: 'Actualizar la foto de perfil del usuario con una imagen predeterminada',
     description: 'Permite al usuario actualizar su foto de perfil usando una imagen predefinida desde el contenedor de imágenes.',
@@ -153,8 +194,14 @@ export class UsersController {
     @Body() input: { userEmail: string, imageUrl: string }
   ) {
     return await this.usersService.updateUserDefaultPhoto(input.userEmail, input.imageUrl);
-  }  
+  }
 
+  /**
+ * Actualiza la privacidad de un usuario.
+ * 
+ * @param input - Email del usuario y tipo de privacidad (publico, privado, protegido).
+ * @returns Resultado de la actualización.
+ */
   @ApiOperation({ summary: 'Actualizar la privacidad de un usuario' })
   @ApiResponse({ status: 200, description: 'Tipo de privacidad actualizado correctamente.' })
   @ApiResponse({ status: 404, description: 'El usuario no existe.' })
@@ -176,6 +223,12 @@ export class UsersController {
     return this.usersService.updateUserPrivacy(input.Email, input.Privacy);
   }
 
+  /**
+ * Actualiza la fecha de nacimiento del usuario.
+ * 
+ * @param input - Email del usuario y nueva fecha de nacimiento.
+ * @returns Resultado de la operación.
+ */
   @ApiOperation({ summary: 'Actualizar la fecha de nacimiento de un usuario' })
   @ApiResponse({ status: 200, description: 'Fecha de nacimiento actualizada correctamente.' })
   @ApiResponse({ status: 400, description: 'Datos inválidos o formato incorrecto.' })
@@ -197,6 +250,12 @@ export class UsersController {
     return this.usersService.updateUserBirthdate(input.userEmail, input.birthdate);
   }
 
+  /**
+ * Actualiza el nombre completo del usuario.
+ * 
+ * @param input - Email del usuario y nuevo nombre completo.
+ * @returns Resultado de la operación.
+ */
   @ApiOperation({ summary: 'Actualizar el nombre completo de un usuario' })
   @ApiResponse({ status: 200, description: 'Nombre completo actualizado correctamente.' })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
@@ -218,6 +277,11 @@ export class UsersController {
     return this.usersService.updateUserFullName(input.userEmail, input.nombreReal);
   }
 
+  /**
+ * Devuelve todas las URLs de imágenes de perfil predefinidas disponibles.
+ * 
+ * @returns Lista de URLs.
+ */
   @ApiOperation({ summary: 'Obtener todas las URLs de imágenes del contenedor predeterminado' })
   @ApiResponse({ status: 200, description: 'Lista de URLs de imágenes obtenidas correctamente.' })
   @ApiResponse({ status: 500, description: 'Error interno al acceder al contenedor de Azure.' })
@@ -226,6 +290,12 @@ export class UsersController {
     return this.usersService.getAllUserDefaultImageUrls();
   }
 
+  /**
+ * Devuelve el perfil del usuario junto con sus playlists públicas y protegidas.
+ * 
+ * @param userEmail - Email del usuario.
+ * @returns Perfil con playlists visibles.
+ */
   @Get('profile-with-playlists')
   @ApiOperation({ summary: 'Obtener perfil de usuario y playlists públicas/protegidas' })
   @ApiQuery({ name: 'userEmail', required: true, type: String })

@@ -7,20 +7,16 @@ export class GeneroController {
   constructor(private readonly generoService: GeneroService) { }
 
   /**
- * Busca todos los géneros asociados a un usuario por su correo electrónico.
- * 
- * Esta función realiza una consulta en la base de datos para obtener todas las preferencias
- * de un usuario identificado por su `userEmail`, y devuelve una lista con los nombres de los géneros
- * asociados a ese correo. La consulta solo obtiene el campo `NombreGenero` de la tabla `Preferencias`.
- * 
- * @param userEmail - Correo electrónico del usuario cuya información de preferencias se quiere obtener.
- * @returns Una promesa que resuelve un arreglo de cadenas (nombres de géneros) asociados al `userEmail`.
+ * Obtiene los géneros musicales preferidos por un usuario junto a sus fotos.
+ *
+ * @param userEmail - Correo electrónico del usuario.
+ * @returns Un array de objetos con `NombreGenero` y `FotoGenero`.
  */
   @ApiOperation({ summary: 'Obtener los géneros y sus fotos de las preferencias del usuario' })
   @ApiResponse({
     status: 200,
     description: 'Géneros y fotos obtenidos correctamente.',
-    type: [Object], // Cambié String a Object porque ahora retorna un array de objetos
+    type: [Object],
   })
   @ApiResponse({ status: 404, description: 'No se encontraron géneros para el usuario.' })
   @Get('preferencia')
@@ -32,6 +28,12 @@ export class GeneroController {
     return this.generoService.getGenerosConFotosByEmail(userEmail);
   }
 
+  /**
+ * Obtiene todos los géneros existentes y señala cuáles están seleccionados por el usuario.
+ *
+ * @param userEmail - Correo del usuario.
+ * @returns Lista de géneros con propiedad `seleccionado: boolean`.
+ */
   @ApiOperation({ summary: 'Obtener todos los géneros y si el usuario los tiene seleccionados' })
   @ApiResponse({ status: 200, description: 'Lista de géneros con su estado de selección.' })
   @Get()
@@ -39,6 +41,12 @@ export class GeneroController {
     return this.generoService.getAllGenerosWithUserSelection(userEmail);
   }
 
+  /**
+ * Actualiza las preferencias de géneros musicales de un usuario.
+ *
+ * @param input - Objeto con el correo del usuario y el array de géneros seleccionados.
+ * @returns Mensaje de éxito al actualizar las preferencias.
+ */
   @ApiOperation({ summary: 'Actualizar preferencias de género a un usuario' })
   @ApiResponse({ status: 201, description: 'Preferencias actualizadas correctamente.' })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
@@ -48,9 +56,9 @@ export class GeneroController {
       type: 'object',
       properties: {
         userEmail: { type: 'string', example: 'usuario@example.com' },
-        generos: { 
-          type: 'array', 
-          items: { type: 'string' }, 
+        generos: {
+          type: 'array',
+          items: { type: 'string' },
           example: ["Rock", "Pop", "Jazz"]
         },
       },

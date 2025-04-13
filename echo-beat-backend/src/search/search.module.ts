@@ -8,4 +8,4 @@ import { PrismaService } from '../prisma/prisma.service';  // Importar el servic
   controllers: [SearchController],
   providers: [SearchService, PrismaService],
 })
-export class SearchModule {}
+export class SearchModule { }

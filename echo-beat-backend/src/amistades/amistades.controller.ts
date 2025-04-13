@@ -5,8 +5,15 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/s
 @ApiTags('Amistades')
 @Controller('amistades')
 export class AmistadesController {
-  constructor(private readonly amistadesService: AmistadesService) {}
+  constructor(private readonly amistadesService: AmistadesService) { }
 
+  /**
+ * Envía una solicitud de amistad entre dos usuarios.
+ * 
+ * @param nickSender - Nick del usuario que envía la solicitud.
+ * @param nickReceiver - Nick del usuario que recibe la solicitud.
+ * @returns Resultado de la operación o error si los datos son inválidos.
+ */
   @ApiOperation({ summary: 'Enviar solicitud de amistad' })
   @ApiResponse({ status: 201, description: 'Solicitud enviada correctamente.' })
   @ApiResponse({ status: 400, description: 'No puedes enviarte una solicitud a ti mismo.' })
@@ -31,7 +38,13 @@ export class AmistadesController {
     return this.amistadesService.solicitarAmistad(nickSender, nickReceiver);
   }
 
-
+  /**
+   * Acepta una solicitud de amistad.
+   * 
+   * @param nickSender - Nick del usuario que envió la solicitud.
+   * @param nickReceiver - Nick del usuario que la acepta.
+   * @returns Resultado de la actualización de estado de amistad.
+   */
   @ApiOperation({ summary: 'Aceptar solicitud de amistad' })
   @ApiResponse({ status: 200, description: 'Solicitud aceptada correctamente.' })
   @ApiBody({
@@ -52,7 +65,13 @@ export class AmistadesController {
     return this.amistadesService.aceptarAmistad(nickSender, nickReceiver);
   }
 
-
+  /**
+   * Rechaza una solicitud de amistad.
+   * 
+   * @param nickSender - Nick del usuario que envió la solicitud.
+   * @param nickReceiver - Nick del usuario que la rechaza.
+   * @returns Confirmación de eliminación de la solicitud.
+   */
   @ApiOperation({ summary: 'Rechazar solicitud de amistad' })
   @ApiResponse({ status: 200, description: 'Solicitud rechazada correctamente.' })
   @ApiBody({
@@ -73,7 +92,13 @@ export class AmistadesController {
     return this.amistadesService.rechazarAmistad(nickSender, nickReceiver);
   }
 
-
+  /**
+   * Elimina una amistad existente entre dos usuarios.
+   * 
+   * @param nickSender - Nick del primer usuario.
+   * @param nickReceiver - Nick del segundo usuario.
+   * @returns Mensaje de éxito o error si no existe la amistad.
+   */
   @ApiOperation({ summary: 'Eliminar amistad' })
   @ApiResponse({ status: 200, description: 'Amistad eliminada correctamente.' })
   @ApiResponse({ status: 404, description: 'No existe una amistad entre estos usuarios.' })
@@ -87,7 +112,12 @@ export class AmistadesController {
     return this.amistadesService.eliminarAmistad(nickSender, nickReceiver);
   }
 
-
+  /**
+   * Obtiene las solicitudes de amistad pendientes recibidas por un usuario.
+   * 
+   * @param nick - Nick del usuario que recibe las solicitudes.
+   * @returns Lista de solicitudes pendientes con foto del remitente.
+   */
   @ApiOperation({ summary: 'Ver solicitudes de amistad recibidas' })
   @ApiResponse({ status: 200, description: 'Lista de solicitudes de amistad pendientes.' })
   @ApiParam({ name: 'nickReceiver', required: true, example: 'usuario2' })
@@ -95,8 +125,13 @@ export class AmistadesController {
   async obtenerSolicitudesAmistad(@Param('nickReceiver') nick: string) {
     return this.amistadesService.obtenerSolicitudesAmistad(nick);
   }
-  
 
+  /**
+   * Obtiene la lista de amigos de un usuario, incluyendo su canción actual (si existe).
+   * 
+   * @param nick - Nick del usuario.
+   * @returns Lista de amigos y su información.
+   */
   @ApiOperation({ summary: 'Ver amigos de un usuario y su última canción escuchada' })
   @ApiResponse({ status: 200, description: 'Lista de amigos y sus últimas canciones escuchadas.' })
   @ApiParam({ name: 'nick', required: true, example: 'usuario1' })
