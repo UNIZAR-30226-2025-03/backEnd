@@ -76,4 +76,21 @@ export class AdminService {
 
     return { message: `Usuario con correo ${email} eliminado correctamente.` };
   }
+
+  async getAllUsers() {
+    const users = await this.prisma.usuario.findMany({
+      where: { Email: { not: ADMIN_EMAIL } },
+    });
+
+    if (users.length === 0) {
+      throw new NotFoundException('No se encontraron usuarios.');
+    }
+
+    return users.map(user => ({
+      id: user.Email,
+      email: user.Email,
+      name: user.NombreCompleto,
+      birthDate: user.FechaNacimiento,
+    }));
+  }
 }

@@ -62,4 +62,23 @@ export class AdminController {
     async deleteUser(@Param('email') email: string) {
       return this.adminService.deleteUser(email);
     }
-  } 
+
+  @Get('users')
+  @ApiOperation({
+    summary: 'Obtener todos los usuarios',
+    description: 'Devuelve una lista con todos los usuarios de la aplicación.'
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Usuarios obtenidos correctamente',
+    type: [Object]
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'No autorizado'
+  })
+  async getAllUsers() {
+      return this.adminService.getAllUsers();
+  }
+
+}
