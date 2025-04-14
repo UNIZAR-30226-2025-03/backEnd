@@ -28,20 +28,21 @@ export class AdminController {
 * 
 * @returns Arreglo de playlists predefinidas.
 */
-  @Get('playlists')
-  @ApiOperation({
-    summary: 'Obtener listas de reproducción predefinidas',
-    description: 'Devuelve todas las listas de reproducción administradas por el administrador del sistema.'
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Listas encontradas correctamente',
-    type: [Object]
-  })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'No autorizado' })
-  async getPredefinedPlaylists() {
+    @Get('playlists')
+    @ApiOperation({
+      summary: 'Obtener listas de reproducción predefinidas',
+      description: 'Devuelve todas las listas de reproducción administradas por el administrador del sistema.'
+    })
+    @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Listas encontradas correctamente',
+      type: [Object]
+    })
+    @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'No autorizado' })
+    async getPredefinedPlaylists() {
+      return this.adminService.findAllPredefinedPlaylists();
+    }
 
-  }
     @Delete('users/:email')
     @ApiOperation({
       summary: 'Eliminar usuario por correo electrónico',
