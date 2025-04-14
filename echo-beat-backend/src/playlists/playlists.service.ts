@@ -93,15 +93,16 @@ export class PlaylistsService {
       where: { Id: Number(listId) },
       include: {
         posiciones: {
-          include: { cancion: true }
+          include: { cancion: true },
+          orderBy: { Posicion: 'asc' },
         }
       },
     });
-
+  
     if (!playlist) {
       throw new NotFoundException(`No se encontró la playlist con ID ${listId}`);
     }
-
+  
     const canciones = playlist.posiciones.map(posicion => ({
       id: posicion.cancion.Id,
       nombre: posicion.cancion.Nombre,
@@ -110,7 +111,7 @@ export class PlaylistsService {
       numFavoritos: posicion.cancion.NumFavoritos,
       portada: posicion.cancion.Portada,
     }));
-
+  
     return { canciones };
   }
 
