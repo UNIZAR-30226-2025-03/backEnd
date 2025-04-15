@@ -2,32 +2,12 @@ import { Controller, Get, Post, Patch, Delete, Param, Body, HttpStatus } from '@
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 
-class CreatePlaylistDto {
-  name: string;
-  description: string;
-  isPublic: boolean;
-}
-
-class UpdatePlaylistDto {
-  name?: string;
-  description?: string;
-  isPublic?: boolean;
-}
-
-class AddSongDto {
-  songId: number;
-}
 
 @ApiTags('Admin')
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) { }
 
-  /**
-* Obtiene todas las listas de reproducción predefinidas creadas por el administrador.
-* 
-* @returns Arreglo de playlists predefinidas.
-*/
     @Get('playlists')
     @ApiOperation({
       summary: 'Obtener listas de reproducción predefinidas',
@@ -64,22 +44,22 @@ export class AdminController {
       return this.adminService.deleteUser(email);
     }
 
-  @Get('users')
-  @ApiOperation({
-    summary: 'Obtener todos los usuarios',
-    description: 'Devuelve una lista con todos los usuarios de la aplicación.'
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Usuarios obtenidos correctamente',
-    type: [Object]
-  })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
-    description: 'No autorizado'
-  })
-  async getAllUsers() {
-      return this.adminService.getAllUsers();
-  }
+    @Get('users')
+    @ApiOperation({
+      summary: 'Obtener todos los usuarios',
+      description: 'Devuelve una lista con todos los usuarios de la aplicación.'
+    })
+    @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Usuarios obtenidos correctamente',
+      type: [Object]
+    })
+    @ApiResponse({
+      status: HttpStatus.UNAUTHORIZED,
+      description: 'No autorizado'
+    })
+    async getAllUsers() {
+        return this.adminService.getAllUsers();
+    }
 
 }

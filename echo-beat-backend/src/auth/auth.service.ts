@@ -58,6 +58,7 @@ export class AuthService {
   async signIn(Usuario: SignInData): Promise<AuthResult> {
     const tokenPayload = {
       Email: Usuario.Email,
+      esAdmin: Usuario.esAdmin,
     };
 
     const accessToken = await this.jwtService.signAsync(tokenPayload, {
