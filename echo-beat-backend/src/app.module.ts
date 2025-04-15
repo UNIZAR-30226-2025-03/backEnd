@@ -19,12 +19,13 @@ import { CancionModule } from './cancion/cancion.module';
 import { EstadoUsuarioModule } from './estado-usuario/estado-usuario.module';
 import { ArtistasModule } from './artistas/artistas.module';
 import { AdminModule } from './admin/admin.module';
+import { GeminiModule } from './gemini/gemini.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true, // Hace que las variables de entorno estén disponibles globalmente
     envFilePath: '.env',
-  }),AuthModule, UsersModule, PlaylistsModule, StreamingModule, SearchModule, PrismaModule, AzureBlobModule, GeneroModule, AmistadesModule, ColaReproduccionModule, ChatModule, CancionModule, EstadoUsuarioModule, ArtistasModule, AdminModule],
+  }),AuthModule, UsersModule, PlaylistsModule, StreamingModule, SearchModule, PrismaModule, AzureBlobModule, GeneroModule, AmistadesModule, ColaReproduccionModule, ChatModule, CancionModule, EstadoUsuarioModule, ArtistasModule, AdminModule, GeminiModule],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
