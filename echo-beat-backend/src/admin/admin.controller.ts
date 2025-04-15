@@ -62,4 +62,26 @@ export class AdminController {
   async getAllUsers() {
     return this.adminService.getAllUsers();
   }
+
+  @Get('data')
+  @ApiOperation({
+    summary: 'Obtener todos los datos de la aplicación',
+    description: 'Devuelve todos los datos de la aplicación, incluyendo usuarios, listas de reproducción y canciones.'
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Datos obtenidos correctamente',
+    type: [Object]
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'No autorizado'
+  })
+  async getExportData() {
+    // Llama al servicio que extrae la información y la devuelve
+    const data = await this.adminService.exportAllData();
+    return data;
+  }
+
+
 }

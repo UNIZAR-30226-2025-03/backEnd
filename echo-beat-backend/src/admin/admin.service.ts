@@ -93,4 +93,116 @@ export class AdminService {
       birthDate: user.FechaNacimiento,
     }));
   }
+
+  /**
+   * Exporta datos relevantes de la aplicación de forma estructurada.
+   * Se incluyen usuarios, artistas, canciones, listas, albums, mensajes, amistades y otras entidades relevantes.
+   */
+  async exportAllData() {
+    // Usuarios con relaciones importantes
+    const usuarios = await this.prisma.usuario.findMany({
+      include: {
+        listas: true,
+        cancionesGuardadas: true,
+        cancionesEscuchadas: true,
+        cancionesEscuchando: true,
+        mensajesEnviados: true,
+        mensajesRecibidos: true,
+        preferencias: true,
+        amistadesEnviadas: true,
+        amistadesRecibidas: true,
+        likes: true,
+      },
+    });
+
+    // Likes (relación entre usuarios y listas)
+    const likes = await this.prisma.like.findMany();
+
+    // Artistas, incluyendo sus álbumes y canciones
+    const artistas = await this.prisma.artista.findMany({
+      include: {
+        albums: true, // relaciones definidas en AutorAlbum más adelante
+        canciones: true, // relaciones definidas en AutorCancion
+      },
+    });
+
+    // Canciones con relaciones (autores, en listas y estadísticas)
+    const canciones = await this.prisma.cancion.findMany({
+      include: {
+        autores: true,
+        listas: true,
+        cancionesGuardadas: true,
+        cancionesEscuchadas: true,
+        cancionEscuchando: true,
+      },
+    });
+
+    // Géneros y las preferencias asociadas
+    const generos = await this.prisma.genero.findMany({
+      include: {
+        preferencias: true,
+      },
+    });
+
+    // Listas (información de listas generales)
+    const listas = await this.prisma.lista.findMany({
+      include: {
+        posiciones: true,
+        likes: true,
+        album: true,
+        listaReproduccion: true,
+      },
+    });
+
+    // Albums con su lista y autores
+    const albums = await this.prisma.album.findMany({
+      include: {
+        lista: true,
+        autores: true,
+      },
+    });
+
+    // Listas de reproducción (con información del autor)
+    const listaReproduccion = await this.prisma.listaReproduccion.findMany({
+      include: {
+        autor: true,
+        lista: true,
+      },
+    });
+
+    // Otras entidades simples
+    const cancionGuardada = await this.prisma.cancionGuardada.findMany();
+    const cancionEscuchada = await this.prisma.cancionEscuchada.findMany();
+    const cancionEscuchando = await this.prisma.cancionEscuchando.findMany();
+    const autorAlbum = await this.prisma.autorAlbum.findMany();
+    const autorCancion = await this.prisma.autorCancion.findMany();
+    const mensajes = await this.prisma.mensaje.findMany();
+    const amistades = await this.prisma.amistad.findMany();
+    const preferencias = await this.prisma.preferencia.findMany();
+    const posicionCancion = await this.prisma.posicionCancion.findMany();
+
+    // Retornar la información de forma estructurada
+    return {
+      usuarios,
+      likes,
+      artistas,
+      canciones,
+      generos,
+      listas,
+      albums,
+      listaReproduccion,
+      cancionGuardada,
+      cancionEscuchada,
+      cancionEscuchando,
+      autorAlbum,
+      autorCancion,
+      mensajes,
+      amistades,
+      preferencias,
+      posicionCancion,
+    };
+  }
+
+
+  
 }
