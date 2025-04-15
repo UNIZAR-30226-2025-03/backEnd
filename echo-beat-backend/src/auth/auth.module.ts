@@ -22,6 +22,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   }),],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, GoogleAuthService, JwtModule, GoogleStrategy],
-  exports: [AuthService], // si quieres usarlo en otros módulos
+  exports: [AuthService,JwtModule], 
 })
 export class AuthModule {}
