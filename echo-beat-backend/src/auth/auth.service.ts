@@ -41,6 +41,9 @@ export class AuthService {
     const Usuario = await this.usersService.findUserByEmail(input.Email);
     if (Usuario && (await bcrypt.compare(input.Password, Usuario.Password))) {
       const esAdmin = await bcrypt.compare(input.Password, process.env.ADMIN_PASSWORD);
+      if (esAdmin) {
+        console.log("Usuario es admin");
+      }
       return {
         Email: Usuario.Email,
         esAdmin: esAdmin,

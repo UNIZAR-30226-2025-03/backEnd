@@ -20,12 +20,14 @@ export class AdminAuthGuard implements CanActivate {
     const authorizationHeader = request.headers.authorization;
 
     if (!authorizationHeader) {
+      console.error('Error: No se proporcionó un token de autenticación.');
       throw new UnauthorizedException('No se proporcionó un token de autenticación.');
     }
 
     // Se asume el formato "Bearer <token>"
     const parts = authorizationHeader.split(' ');
     if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      console.error('Error: El formato del token es inválido.');
       throw new UnauthorizedException('El formato del token es inválido.');
     }
 
@@ -39,12 +41,14 @@ export class AdminAuthGuard implements CanActivate {
 
       // Verifica que el usuario tenga permisos de administrador
       if (!tokenPayload.esAdmin) {
+        console.error('Error: El usuario no tiene permisos de administrador.');
         throw new UnauthorizedException('No tienes permisos para acceder a esta ruta.');
       }
       
       // Si todo es correcto, permite continuar la ejecución
       return true;
     } catch (error) {
+      console.error('Error: Token inválido o expirado.', error);
       throw new UnauthorizedException('Token inválido o expirado.');
     }
   }
