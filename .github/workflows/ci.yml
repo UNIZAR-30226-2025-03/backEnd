@@ -41,6 +41,12 @@ jobs:
           printf "%b" "${{ secrets.SECRET_VARIABLES }}" > .env
         working-directory: echo-beat-backend
 
+
+      - name: Ver .env
+        run: cat .env
+          
+        working-directory: echo-beat-backend
+
       # 6. Inicia el servidor en segundo plano y espera a que esté activo en el puerto 3000
       - name: Start server
         run: |
