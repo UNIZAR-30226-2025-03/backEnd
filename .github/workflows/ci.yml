@@ -27,6 +27,10 @@ jobs:
         run: npm install
         working-directory: echo-beat-backend
 
+      - name: Install start-server-and-test
+        run: npm install --save-dev start-server-and-test
+        working-directory: echo-beat-backend
+
       - name: Generate Prisma client
         run: npx prisma generate
         working-directory: echo-beat-backend
@@ -40,6 +44,9 @@ jobs:
         working-directory: echo-beat-backend
 
       - name: Start server and run tests
-        run: npx start-server-and-test "npm run start:dev" "http://localhost:3000" "npm run test"
+        run: npx start-server-and-test "npm run start:dev" "http://127.0.0.1:3000" "npm run test"
         working-directory: echo-beat-backend
 
+      - name: Run tests with coverage (optional)
+        run: npm run test:cov
+        working-directory: echo-beat-backend
