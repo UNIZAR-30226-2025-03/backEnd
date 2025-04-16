@@ -40,6 +40,10 @@ jobs:
           # ...
         working-directory: echo-beat-backend
 
+      - name: Debug .env content
+        run: cat .env
+        working-directory: echo-beat-backend
+
       - name: Start server
         run: |
           npm run start:dev &
