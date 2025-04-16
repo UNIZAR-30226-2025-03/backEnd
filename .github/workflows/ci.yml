@@ -46,7 +46,3 @@ jobs:
       - name: Start server and run tests
         run: npx start-server-and-test "npm run start:dev" "http://127.0.0.1:3000" "npm run test"
         working-directory: echo-beat-backend
-
-      - name: Run tests with coverage (optional)
-        run: npm run test:cov
-        working-directory: echo-beat-backend
