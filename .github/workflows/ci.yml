@@ -44,7 +44,7 @@ jobs:
         working-directory: echo-beat-backend
 
       - name: Start server and run tests
-        run: npx start-server-and-test --timeout 60000 "npm run start:dev" "http://localhost:3000" "npm run test"
+        run: npx start-server-and-test "npm run start:dev" "http://localhost:3000" "npm run test"
         working-directory: echo-beat-backend
 
       - name: Run tests with coverage (optional)
