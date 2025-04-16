@@ -32,8 +32,12 @@ jobs:
         working-directory: echo-beat-backend
 
       - name: Create .env file
+        shell: bash
+        env:
+          SECRET_VARIABLES: ${{ secrets.SECRET_VARIABLES }}
         run: |
-          printf "%b" "${{ secrets.SECRET_VARIABLES }}" > .env
+          # Usamos printf "%b" para interpretar correctamente los saltos de línea y caracteres especiales
+          printf "%b" "$SECRET_VARIABLES" > .env
         working-directory: echo-beat-backend
 
 
