@@ -15,51 +15,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Chequea el código del repositorio
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Configura Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      # 3. Instala las dependencias
       - name: Install dependencies
         run: npm install
         working-directory: echo-beat-backend
 
-      # 4. Genera el cliente de Prisma
       - name: Generate Prisma client
         run: npx prisma generate
         working-directory: echo-beat-backend
 
-      # 5. Crea el archivo .env usando el contenido del secreto SECRET_VARIABLES
-      - name: Create .env file with the secret
+      # <-- Aquí creas el archivo .env con la conexión a Azure
+      - name: Create .env file
         run: |
-          printf "%b" "${{ secrets.SECRET_VARIABLES }}" > .env
+          echo "AZURE_STORAGE_CONNECTION_STRING=${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" >> .env
+          # Opcional: si tienes más variables, agrégalas aquí, ejemplo:
+          # echo "PORT=3000" >> .env
+          # ...
         working-directory: echo-beat-backend
 
-
-      - name: Ver .env
-        run: cat .env
-          
-        working-directory: echo-beat-backend
-
-      # 6. Inicia el servidor en segundo plano y espera a que esté activo en el puerto 3000
       - name: Start server
         run: |
           npm run start:dev &
           npx wait-on http://localhost:3000
         working-directory: echo-beat-backend
 
-      # 7. Ejecuta los tests
       - name: Run tests
         run: npm run test
         working-directory: echo-beat-backend
 
-      # 8. Ejecuta los tests con cobertura (opcional)
       - name: Run tests with coverage
         run: npm run test:cov
         working-directory: echo-beat-backend
