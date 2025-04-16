@@ -1,7 +1,7 @@
 import * as request from 'supertest';
 
 // URL base de los endpoints de cancion (asegúrate de que la API esté corriendo localmente)
-const baseUrl = 'http://localhost:3000/cancion';
+const baseUrl = 'http://127.0.0.1:3000/cancion';
 
 describe('Pruebas de Endpoints Canción', () => {
   const email = 'testsbackend@gmail.com';

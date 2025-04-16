@@ -1,6 +1,6 @@
 import * as request from 'supertest';
 
-const baseUrl = 'http://localhost:3000/search';
+const baseUrl = 'http://127.0.0.1:3000/search';
 
 describe('Pruebas de Endpoints Search', () => {
   const terminoBusqueda = 'Rock';

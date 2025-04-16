@@ -1,6 +1,6 @@
 import * as request from 'supertest';
 
-const baseUrl = 'http://localhost:3000/genero';
+const baseUrl = 'http://127.0.0.1:3000/genero';
 
 describe('Pruebas de Endpoints Genero', () => {
   const userEmail = 'testsbackend@gmail.com';

@@ -1,7 +1,7 @@
 import * as request from 'supertest';
 
 // URL base de los endpoints de usuarios
-const baseUrl = 'http://localhost:3000/users';
+const baseUrl = 'http://127.0.0.1:3000/users';
 // Usamos un correo de prueba único y consistente
 const testEmail = 'testsbackend@gmail.com';
 

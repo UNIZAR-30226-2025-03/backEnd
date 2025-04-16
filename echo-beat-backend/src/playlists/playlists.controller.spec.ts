@@ -1,6 +1,6 @@
 import * as request from 'supertest';
 
-const baseUrl = 'http://localhost:3000/playlists';
+const baseUrl = 'http://127.0.0.1:3000/playlists';
 
 describe('Pruebas de Endpoints Playlists - Usando playlist existente (id 96)', () => {
   // Utilizamos el id 96, ya existente en la base de datos.

@@ -1,6 +1,6 @@
 import * as request from 'supertest';
 
-const baseUrl = 'http://localhost:3000/cola-reproduccion';
+const baseUrl = 'http://127.0.0.1:3000/cola-reproduccion';
 
 describe('Pruebas de Endpoints Cola de Reproducción (módulo único)', () => {
   const userEmail = 'testsbackend@gmail.com';

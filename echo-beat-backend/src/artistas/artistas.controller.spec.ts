@@ -1,6 +1,6 @@
 import * as request from 'supertest';
 
-const baseUrl = 'http://localhost:3000/artistas';
+const baseUrl = 'http://127.0.0.1:3000/artistas';
 
 describe('Pruebas de Endpoints Artistas', () => {
   it('Debería obtener el perfil del artista TriFace', async () => {

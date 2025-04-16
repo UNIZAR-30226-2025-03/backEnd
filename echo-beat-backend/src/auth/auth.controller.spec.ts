@@ -1,6 +1,6 @@
 import * as request from 'supertest';
 
-const baseUrl = 'http://localhost:3000/auth';
+const baseUrl = 'http://127.0.0.1:3000/auth';
 
 describe('Pruebas de Endpoints Auth', () => {
 
