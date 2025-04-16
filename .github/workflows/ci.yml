@@ -27,6 +27,10 @@ jobs:
         run: npm install
         working-directory: echo-beat-backend
 
+      - name: Install start-server-and-test
+        run: npm install --save-dev start-server-and-test
+        working-directory: echo-beat-backend
+
       - name: Generate Prisma client
         run: npx prisma generate
         working-directory: echo-beat-backend
@@ -39,11 +43,10 @@ jobs:
           printf "%b" "$SECRET_VARIABLES" > .env
         working-directory: echo-beat-backend
 
-      - name: Start server in background and run tests manually
-        shell: bash
-        run: |
-          npm run start:dev &
-          sleep 10
-          npm run test
+      - name: Start server and run tests
+        run: npx start-server-and-test --timeout 60000 "npm run start:dev" "http://localhost:3000" "npm run test"
         working-directory: echo-beat-backend
 
+      - name: Run tests with coverage (optional)
+        run: npm run test:cov
+        working-directory: echo-beat-backend
