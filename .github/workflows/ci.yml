@@ -42,4 +42,3 @@ jobs:
       - name: Start server and run tests
         run: npx start-server-and-test "npm run start:dev" "http://localhost:3000" "npm run test"
         working-directory: echo-beat-backend
-
