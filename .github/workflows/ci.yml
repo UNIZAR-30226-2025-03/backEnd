@@ -1,50 +1,53 @@
 name: CI - Run Tests
 
 on:
-  push:        # Ejecuta el workflow en cada push
-    branches:  # Especifica en qué ramas debe ejecutarse
+  push:
+    branches:
       - main
       - develop
-  pull_request: # También se ejecuta en cada PR
+  pull_request:
     branches:
       - main
       - develop
 
 jobs:
   test:
-    runs-on: ubuntu-latest  # Usa un contenedor Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
-    # 1. Chequea el código desde el repositorio
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # 1. Chequea el código del repositorio
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    # 2. Configura Node.js
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18 # Usa la versión de Node.js que necesites
+      # 2. Configura Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    # 3. Cambia de directorio al proyecto `echo-beat-backend`
-    - name: Change directory to echo-beat-backend
-      run: cd echo-beat-backend
+      # 3. Instala las dependencias
+      - name: Install dependencies
+        run: npm install
+        working-directory: echo-beat-backend
 
-    # 4. Instala las dependencias
-    - name: Install dependencies
-      run: npm install
-      working-directory: echo-beat-backend
+      # 4. Genera el cliente de Prisma
+      - name: Generate Prisma client
+        run: npx prisma generate
+        working-directory: echo-beat-backend
 
-    # 5. Ejecuta Prisma generate (si usas Prisma)
-    #  - name: Generate Prisma client
-    #  run: npx prisma generate
-    #  working-directory: echo-beat-backend
+      # 5. Inicia el servidor en segundo plano y espera a que esté activo en el puerto 3000
+      - name: Start server
+        run: |
+          npm run start:dev &
+          npx wait-on http://localhost:3000
+        working-directory: echo-beat-backend
 
-    # 6. Corre los tests
-    - name: Run tests
-      run: npm run test
-      working-directory: echo-beat-backend
+      # 6. Ejecuta los tests
+      - name: Run tests
+        run: npm run test
+        working-directory: echo-beat-backend
 
-    # 7. Reporte de cobertura (opcional, si usas Jest)
-    - name: Run tests with coverage
-      run: npm run test:cov
-      working-directory: echo-beat-backend
+      # 7. Ejecuta los tests con cobertura (opcional)
+      - name: Run tests with coverage
+        run: npm run test:cov
+        working-directory: echo-beat-backend
