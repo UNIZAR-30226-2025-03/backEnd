@@ -28,7 +28,7 @@ export class AmistadesController {
     }
   })
   @Post('solicitar')
-  async solicitarAmistad(
+  async solicitarAmistad( 
     @Body('nickSender') nickSender: string,
     @Body('nickReceiver') nickReceiver: string
   ) {
