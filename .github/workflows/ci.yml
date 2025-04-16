@@ -39,15 +39,7 @@ jobs:
           printf "%b" "$SECRET_VARIABLES" > .env
         working-directory: echo-beat-backend
 
-      - name: Start server in background and wait
-        run: |
-          npm run start:dev & 
-          sleep 10
+      - name: Start server and run tests
+        run: npx start-server-and-test "npm run start:dev" "http://localhost:3000" "npm run test"
         working-directory: echo-beat-backend
-
-      - name: Run tests
-        run: npm run test
-        working-directory: echo-beat-backend
-
-
 
