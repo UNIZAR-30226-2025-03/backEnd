@@ -36,25 +36,11 @@ jobs:
         env:
           SECRET_VARIABLES: ${{ secrets.SECRET_VARIABLES }}
         run: |
-          # Usamos printf "%b" para interpretar correctamente los saltos de línea y caracteres especiales
           printf "%b" "$SECRET_VARIABLES" > .env
         working-directory: echo-beat-backend
 
-
-      - name: Debug .env content
-        run: cat .env
+      # Usa start-server-and-test para iniciar el servidor y, cuando esté disponible, ejecutar los tests.
+      - name: Start server and run tests
+        run: npx start-server-and-test "npm run start:dev" "http://localhost:3000" "npm run test"
         working-directory: echo-beat-backend
 
-      - name: Start server
-        run: |
-          npm run start:dev &
-          npx wait-on http://localhost:3000
-        working-directory: echo-beat-backend
-
-      - name: Run tests
-        run: npm run test
-        working-directory: echo-beat-backend
-
-      - name: Run tests with coverage
-        run: npm run test:cov
-        working-directory: echo-beat-backend
