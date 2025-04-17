@@ -86,17 +86,17 @@ export class GeneroService {
     if (!userEmail || !Array.isArray(generos) || generos.length === 0) {
       throw new BadRequestException('Email y lista de géneros son requeridos.');
     }
-
+  
     const generosActuales = await this.prisma.preferencia.findMany({
       where: { Email: userEmail },
       select: { NombreGenero: true },
     });
-
-    const generosActualesSet = new Set(generosActuales.map(g => g.NombreGenero));
-    const generosEntradaSet = new Set(generos);
-
+  
+    const generosActualesSet: Set<string> = new Set(generosActuales.map(g => g.NombreGenero));
+    const generosEntradaSet: Set<string> = new Set(generos);
+  
     const generosAEliminar = [...generosActualesSet].filter(g => !generosEntradaSet.has(g));
-
+  
     if (generosAEliminar.length > 0) {
       await this.prisma.preferencia.deleteMany({
         where: {
