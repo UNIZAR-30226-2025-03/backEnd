@@ -4,20 +4,26 @@
     FROM node:22-alpine AS build
     WORKDIR /usr/src/app
     
+    # Copiar y preparar dependencias
     COPY package*.json ./
     RUN npm install
+    
+    # 🔧 Copiar el esquema Prisma antes de generar
+    COPY prisma ./prisma
+    
+    # 🔧 Generar Prisma Client
     RUN npx prisma generate
     
+    # Copiar configuración y código fuente
     COPY tsconfig*.json nest-cli.json* ./
     COPY src ./src
     COPY test ./test
     
-    # Ejecutar tests antes de compilar
-    #RUN npm run test
+    # Ejecutar tests opcionalmente
+    # RUN npm run test
     
-    # Compila a JavaScript
+    # Compilar proyecto
     RUN npm run build
-    
     
     # -------------------------------------------
     # 2) Runtime + PM2
