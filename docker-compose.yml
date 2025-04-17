@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backEnd/echo-beat-backend      
+      dockerfile: Dockerfile                    
+    image: echo-beat-backend:latest
+    container_name: echo-beat-backend
+    restart: unless-stopped
+
+    ports:
+      - "443:443"
+
+    volumes:
+      # Certificados en sólo‑lectura
+      - ../certificates/echobeatapi.duckdns.org:/usr/src/app/certificates/echobeatapi.duckdns.org:ro
+
+    environment:
+      NODE_ENV: production
+      TZ: Europe/Madrid
+
