@@ -3,7 +3,7 @@ version: '3.8'
 services:
   backend:
     build:
-      context: ./backEnd/echo-beat-backend      
+      context: ./echo-beat-backend      
       dockerfile: Dockerfile                    
     image: echo-beat-backend:latest
     container_name: echo-beat-backend
