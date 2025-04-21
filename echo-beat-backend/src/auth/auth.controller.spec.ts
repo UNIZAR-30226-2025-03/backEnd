@@ -47,26 +47,6 @@ describe('Pruebas de Endpoints Auth', () => {
     //expect(response.body).toHaveProperty('message');
   });
 
-  // 5. Inicio de sesión con Google en móvil con token inválido (debe retornar 401)
-  it('Debería fallar al iniciar sesión con Google en móvil con token inválido', async () => {
-    const payload = { idToken: 'invalid-id-token' };
-
-    await request(baseUrl)
-      .post('/google/mobile')
-      .send(payload)
-      .expect(401);
-  });
-
-  // 6. Autenticación con Google usando código de autorización con código inválido (debe retornar 401)
-  it('Debería fallar la autenticación con Google usando código inválido', async () => {
-    const payload = { code: 'invalid-code' };
-
-    await request(baseUrl)
-      .post('/google/code')
-      .send(payload)
-      .expect(401);
-  });
-
   // 7. Validar token JWT
   it('Debería validar un token JWT válido', async () => {
     // Utilizamos el endpoint de login para obtener un token válido.
@@ -97,4 +77,40 @@ describe('Pruebas de Endpoints Auth', () => {
     // Se espera recibir una respuesta con mensaje 'Token inválido o caducado'
     expect(response.body).toHaveProperty('message', 'Token inválido o caducado');
   });
+
+
+  // 9. Test para Google auth mobile - caso exitoso
+  it('Debería autenticar al usuario con credenciales de Google', async () => {
+    const response = await request(baseUrl)
+      .get('/google/mobile')
+      .query({ 
+        email: 'testsbackend@gmail.com', 
+        fullName: 'Test User' 
+      })
+      .expect(200);
+
+    // Verificar que la respuesta incluye un token y datos del usuario
+    expect(response.body).toHaveProperty('accessToken');
+  });
+
+  // 10. Test para Google auth mobile - email faltante
+  it('Debería rechazar autenticación Google cuando falta email', async () => {
+    const response = await request(baseUrl)
+      .get('/google/mobile')
+      .query({ fullName: 'Test User' })
+      .expect(400);
+
+    expect(response.body).toHaveProperty('message', 'Debe enviar los parámetros email y fullName');
+  });
+
+  // 11. Test para Google auth mobile - nombre faltante
+  it('Debería rechazar autenticación Google cuando falta fullName', async () => {
+    const response = await request(baseUrl)
+      .get('/google/mobile')
+      .query({ email: 'testsbackend@gmail.com' })
+      .expect(400);
+
+    expect(response.body).toHaveProperty('message', 'Debe enviar los parámetros email y fullName');
+  });
+
 });
