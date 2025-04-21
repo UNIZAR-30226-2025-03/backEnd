@@ -505,4 +505,23 @@ export class UsersService {
       Playlists: formattedPlaylists,
     };
   }
+
+   /**
+   * Obtiene el atributo de privacidad del usuario a partir de su correo electrónico.
+   * @param email Correo del usuario.
+   * @returns Objeto con la propiedad `Privacidad`.
+   * @throws NotFoundException si el usuario no existe.
+   */
+   async getUserPrivacy(email: string): Promise<{ Privacidad: string }> {
+    const user = await this.prisma.usuario.findUnique({
+      where: { Email: email },
+      select: { Privacidad: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con email ${email} no encontrado`);
+    }
+
+    return { Privacidad: user.Privacidad };
+  }
 }

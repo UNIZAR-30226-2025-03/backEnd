@@ -304,4 +304,26 @@ export class UsersController {
   async getUserProfileWithPlaylists(@Query('userEmail') userEmail: string) {
     return this.usersService.getUserProfileWithPublicPlaylists(userEmail);
   }
+
+   /**
+   * Endpoint para obtener la privacidad de un usuario por su correo.
+   * @param userEmail Correo electrónico del usuario.
+   * @returns Objeto con la propiedad `Privacidad`.
+   */
+   @Get('get-privacy')
+   @ApiOperation({ summary: 'Obtener la privacidad del usuario' })
+   @ApiResponse({
+     status: 200,
+     description: 'Privacidad obtenida correctamente.',
+     schema: {
+       example: {
+         Privacidad: 'publico',
+       },
+     },
+   })
+   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+   @ApiQuery({ name: 'userEmail', required: true, type: String })
+   async getUserPrivacy(@Query('userEmail') userEmail: string) {
+     return this.usersService.getUserPrivacy(userEmail);
+   }
 }
