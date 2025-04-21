@@ -104,7 +104,7 @@ export class AuthController {
     try {
       const jwt = await this.authService.loginWithGoogle(req.user);
 
-      const frontendUrl = 'http://127.0.0.1:5173';
+      const frontendUrl = 'http://localhost:5173';
 
       res.redirect(`${frontendUrl}/auth/callback?token=${jwt.accessToken}&email=${req.user.Email}`);
     } catch (error) {
