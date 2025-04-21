@@ -1,5 +1,5 @@
-import { Controller, Get, Req, Res, Post, Inject, HttpCode, HttpStatus, Body, Request, UseGuards, UnauthorizedException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { Controller, Get, Req, Res, Post, Inject, HttpCode, HttpStatus, Body, Request, Query, UseGuards, UnauthorizedException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody,ApiQuery  } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -113,125 +113,7 @@ export class AuthController {
     }
   }
 
-  /**
- * Inicia sesión con Google en dispositivos móviles utilizando un idToken.
- * 
- * @param body - Objeto que contiene el idToken de Google.
- * @returns Un JWT si la autenticación fue exitosa.
- */
-  @ApiOperation({ summary: 'Inicio de sesión con Google en dispositivos móviles' })
-  @ApiResponse({
-    status: 200,
-    description: 'Autenticación exitosa, devuelve un JWT',
-    schema: {
-      example: {
-        accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        user: {
-          id: "123456",
-          email: "usuario@gmail.com",
-        },
-      },
-    },
-  })
-  @ApiResponse({ status: 401, description: 'No autorizado: El usuario no tiene cuenta registrada' })
-  @ApiBody({
-    description: 'ID Token de Google para autenticación',
-    required: true,
-    schema: {
-      type: 'object',
-      properties: {
-        idToken: {
-          type: 'string',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
-        },
-      },
-    },
-  })
-  @Post('google/mobile')
-  async googleAuthMobile(@Body() body) {
-    const { idToken } = body;
-
-    try {
-      const ticket = await this.googleAuthService.verifyToken(idToken);
-      const payload = ticket.getPayload();
-
-      if (!payload) {
-        throw new UnauthorizedException("Token de Google inválido");
-      }
-      const email = payload?.email;
-      if (!email) {
-        throw new UnauthorizedException("El email no está presente en el token de Google.");
-      }
-
-      const user = await this.UsersService.findUserByEmail(email);
-
-
-      if (!user) {
-        throw new UnauthorizedException("No tienes una cuenta registrada. Regístrate primero.");
-      }
-
-      return this.authService.loginWithGoogle(user);
-    } catch (error) {
-      throw new UnauthorizedException("Error al autenticar con Google");
-    }
-  }
-
-  /**
- * Inicia sesión con Google intercambiando un código por un idToken.
- * 
- * @param body - Objeto con el código de autorización de Google.
- * @returns JWT de acceso si la autenticación fue exitosa.
- */
-  @ApiOperation({ summary: 'Autenticación con Google usando código de autorización' })
-  @ApiResponse({
-    status: 200,
-    description: 'Autenticación exitosa, devuelve un JWT',
-    schema: {
-      example: {
-        accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        user: {
-          id: "123456",
-          email: "usuario@gmail.com",
-          name: "Usuario Google",
-        },
-      },
-    },
-  })
-  @ApiResponse({ status: 401, description: 'No autorizado: El usuario no tiene cuenta registrada' })
-  @ApiBody({
-    description: 'Código de autorización de Google para obtener el idToken y generar el accessToken',
-    required: true,
-    schema: {
-      type: 'object',
-      properties: {
-        code: {
-          type: 'string',
-          example: '4/0AX4XfWiX8XjP9PbiwK3Kvxtswz7mrM42_nNm_0V6obJ...',
-        },
-      },
-    },
-  })
-  @Post('google/code')
-  async googleAuthWithCode(@Body() body: { code: string }) {
-    const { code } = body;
-
-    try {
-      const tokens = await this.googleAuthService.getGoogleTokens(code);
-
-      if (!tokens.id_token) {
-        throw new UnauthorizedException('Token de Google inválido');
-      }
-
-      const payload = await this.googleAuthService.verifyToken(tokens.id_token);
-
-      const user = await this.authService.validateGoogleUser(payload);
-
-      const jwt = await this.authService.loginWithGoogle(user);
-      return { token: jwt.accessToken };
-    } catch (error) {
-      throw new UnauthorizedException('Error al autenticar con Google');
-    }
-  }
+ 
 
   /**
    * Verifica si un token JWT es válido.
@@ -287,6 +169,93 @@ export class AuthController {
       return { message: result.message };
     }
   }
+  
+    /**
+     * Callback móvil que recibe email y nombre completo, genera un JWT
+     * y devuelve al frontend el token y los datos del usuario.
+     */
+    @ApiOperation({ summary: 'Callback Google móvil con parámetros email y nombre completo' })
+    @ApiQuery({ name: 'email', required: true, description: 'Email del usuario tal como lo devuelve Google' })
+    @ApiQuery({ name: 'fullName', required: true, description: 'Nombre completo del usuario tal como lo devuelve Google' })
+    @ApiResponse({
+      status: 200,
+      description: 'Autenticación exitosa, devuelve un JWT y datos de usuario',
+      schema: {
+        example: {
+          accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+          user: {
+            id: '123456',
+            email: 'usuario@gmail.com',
+            name: 'Usuario Google',
+          },
+        },
+      },
+    })
+    @ApiResponse({ status: 400, description: 'Faltan parámetros email o fullName' })
+    @ApiResponse({ status: 500, description: 'Error interno en la generación del token' })
+    @Get('google/mobile')
+    async googleAuthMobile(
+      @Query('email') email: string,
+      @Query('fullName') fullName: string,
+      @Res() res: Response
+    ) {
+      if (!email || !fullName) {
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ message: 'Debe enviar los parámetros email y fullName' });
+      }
+  
+      try {
+        // Construimos un "profile" compatible con validateGoogleUser
+        const profile = {
+          emails: [{ value: email }],
+          displayName: fullName,
+        };
+  
+        // 1. Validar o crear el usuario
+        const validatedUser = await this.authService.validateGoogleUser(profile);
+  
+        // 2. Generar token + datos
+        const result = await this.authService.loginWithGoogle(validatedUser);
+        // -> { accessToken: string, user: { id, email, name } }
+  
+        // 3. Devolver al cliente
+        return res
+          .status(HttpStatus.OK)
+          .json(result);
+      } catch (error) {
+        console.error('Error en googleAuthMobile:', error);
+        return res
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .json({ message: 'Error interno en la autenticación con Google' });
+      }
+    }
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 
