@@ -106,7 +106,20 @@ export class AuthController {
 
       const frontendUrl = 'https://echobeatweb.netlify.app';
       // Redirigir al frontend con el token y el email
-      res.redirect(`${frontendUrl}/auth/callback?token=${jwt.accessToken}&email=${req.user.Email}&isNew=${req.isNew}`);
+      console.log("aqui!");
+      console.log(req.email);
+      console.log(req.user);
+      console.log(req.isNew);
+      console.log(req.user.email);
+      console.log(req.user.Email);
+      console.log(req.user.isNew);
+      console.log(req.user.isNewUser);
+
+
+
+
+
+      res.redirect(`${frontendUrl}/auth/callback?token=${jwt.accessToken}&email=${req.user.email}&isNew=${req.user.isNew}`);
 
     } catch (error) {
       console.error("Error en googleAuthRedirect:", error);
