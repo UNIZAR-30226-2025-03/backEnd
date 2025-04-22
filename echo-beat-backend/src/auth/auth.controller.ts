@@ -104,7 +104,7 @@ export class AuthController {
     try {
       const jwt = await this.authService.loginWithGoogle(req.user);
 
-      const frontendUrl = 'https://echobeatweb.netlify.app/';
+      const frontendUrl = 'https://echobeatweb.netlify.app';
 
       res.redirect(`${frontendUrl}/auth/callback?token=${jwt.accessToken}&email=${req.user.Email}`);
 
