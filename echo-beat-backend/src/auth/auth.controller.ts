@@ -91,7 +91,7 @@ export class AuthController {
         accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
         user: {
           id: "123456",
-          email: "usuario@gmail.com",
+          email: "usuario1@gmail.com",
           name: "Usuario Google",
         },
       },
@@ -104,9 +104,10 @@ export class AuthController {
     try {
       const jwt = await this.authService.loginWithGoogle(req.user);
 
-      const frontendUrl = 'http://localhost:5173';
+      const frontendUrl = 'https://echobeatweb.netlify.app/';
 
       res.redirect(`${frontendUrl}/auth/callback?token=${jwt.accessToken}&email=${req.user.Email}`);
+
     } catch (error) {
       console.error("Error en googleAuthRedirect:", error);
       res.status(500).json({ message: "Error interno en la autenticación con Google" });
