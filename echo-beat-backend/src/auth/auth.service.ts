@@ -154,11 +154,13 @@ export class AuthService {
     const email = emails[0].value;
 
     let user = await this.usersService.findUserByEmail(email);
+    let isNewUser = false;
 
     if (!user) {
       const randomId = Math.floor(Math.random() * 100000000) + 1;
       const newNick = `echobeatUser_${randomId}`;
       const DEFAULT_BIRTHDATE = new Date('2000-01-01');
+      isNewUser = true;
 
       user = await this.usersService.createUser(
         email,
@@ -168,7 +170,7 @@ export class AuthService {
         DEFAULT_BIRTHDATE
       );
     }
-    return user;
+    return {user, isNewUser};
   }
 
   /**

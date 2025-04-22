@@ -29,7 +29,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
  * @returns Una llamada al callback con el usuario validado.
  */
   async validate(accessToken: string, refreshToken: string, profile: any, done: VerifyCallback) {
-    const user = await this.authService.validateGoogleUser(profile);
-    return done(null, user);
+    const {user,isNewUser} = await this.authService.validateGoogleUser(profile);
+    return done(null, user, isNewUser);
   }
 }
