@@ -214,16 +214,19 @@ export class AuthController {
         };
   
         // 1. Validar o crear el usuario
-        const validatedUser = await this.authService.validateGoogleUser(profile);
+        const { user, isNewUser } = await this.authService.validateGoogleUser(profile);
   
         // 2. Generar token + datos
-        const result = await this.authService.loginWithGoogle(validatedUser);
+        const result = await this.authService.loginWithGoogle(user);
         // -> { accessToken: string, user: { id, email, name } }
   
         // 3. Devolver al cliente
         return res
           .status(HttpStatus.OK)
-          .json(result);
+          .json({
+            ...result,
+            isNew: isNewUser,
+          });
       } catch (error) {
         console.error('Error en googleAuthMobile:', error);
         return res
