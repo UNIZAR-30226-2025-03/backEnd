@@ -12,8 +12,14 @@ export class GenerateMessageDto {
 @Controller('gemini')
 @ApiTags('gemini')
 export class GeminiController {
-  constructor(private readonly geminiService: GeminiService) {}
+  constructor(private readonly geminiService: GeminiService) { }
 
+  /**
+   * Obtiene la respuesta del modelo Gemini a partir del mensaje del usuario.
+   * El contexto se obtiene llamando a exportAllData del módulo admin.
+   * @param message Mensaje del usuario.
+   * @returns Respuesta generada por Gemini.
+   */
   @Post()
   @ApiOperation({
     summary: 'Generar mensaje con Gemini',
@@ -35,7 +41,6 @@ export class GeminiController {
   async generateMessage(
     @Body() body: GenerateMessageDto,
   ): Promise<any> {
-    // Llama al servicio Gemini sin pasar un contexto desde el usuario, ya que éste se obtiene internamente.
     return this.geminiService.getChatResponse(body.message);
   }
 }

@@ -23,18 +23,12 @@ export class GeminiService {
    */
   async getChatResponse(message: string): Promise<any> {
     try {
-      // Llama al servicio de exportación para obtener el contexto (los datos de la app)
       const dataExport = await this.dataExportService.exportAllData();
-      // Convierte el JSON a una cadena de texto. Puedes elegir formatearlo si lo prefieres.
       const context = JSON.stringify(dataExport);
-      // Construye un prompt que combine el contexto y el mensaje.
-      // Por ejemplo:
       const prompt = `${context}\nUsuario: ${message}\nChatbot:`;
       
-      // Llama al modelo Gemini con el prompt construido.
-      // Ajusta el nombre del modelo y los parámetros según la documentación.
       const response = await this.ai.models.generateContent({
-        model: 'gemini-2.0-flash', // Verifica cuál es el modelo correcto.
+        model: 'gemini-2.0-flash',
         contents: prompt,
       });
       return response;

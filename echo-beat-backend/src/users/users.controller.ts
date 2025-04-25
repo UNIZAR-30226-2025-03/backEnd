@@ -67,8 +67,8 @@ export class UsersController {
  * @returns Canción o excepción si no hay cola o usuario no existe.
  */
   @ApiOperation({
-    summary: 'Obtener la primera canción de la cola de reproducción de un usuario',
-    description: 'Esta API devuelve la primera canción de la cola de reproducción de un usuario.',
+    summary: 'Obtener la canción de la cola de reproducción de un usuario que toca reproducir',
+    description: 'Esta API devuelve la canción de la cola de reproducción de un usuario que toca reproducir.',
   })
   @ApiResponse({ status: 200, description: 'Canción obtenida correctamente.' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado o cola vacía.' })
@@ -146,7 +146,7 @@ export class UsersController {
   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Datos para crear una playlist',
+    description: 'Datos para actualizar foto de perfil de usuario',
     schema: {
       type: 'object',
       properties: {
