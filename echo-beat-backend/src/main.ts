@@ -12,10 +12,10 @@ async function bootstrap() {
   if (process.env.HTTPS === 'YES') {
     const domain = process.env.DUCKDNS_DOMAIN;
     const httpsOptions = {
-      //key: fs.readFileSync('/home/azureuser/certificates/echobeatapi.duckdns.org/privkey.pem'),
-      //cert: fs.readFileSync('/home/azureuser/certificates/echobeatapi.duckdns.org/fullchain.pem'),
-      key: fs.readFileSync('./certificates/echobeatapi.duckdns.org/privkey.pem'),
-      cert: fs.readFileSync('./certificates/echobeatapi.duckdns.org/fullchain.pem'),
+      key: fs.readFileSync('/home/azureuser/certificates/echobeatapi.duckdns.org/privkey.pem'),
+      cert: fs.readFileSync('/home/azureuser/certificates/echobeatapi.duckdns.org/fullchain.pem'),
+      //key: fs.readFileSync('./certificates/echobeatapi.duckdns.org/privkey.pem'),
+      //cert: fs.readFileSync('./certificates/echobeatapi.duckdns.org/fullchain.pem'),
     };
     app = await NestFactory.create(AppModule, { httpsOptions });
     console.log(`Servidor configurado para HTTPS en dominio: ${domain}`);
