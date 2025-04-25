@@ -98,11 +98,11 @@ export class PlaylistsService {
         }
       },
     });
-  
+
     if (!playlist) {
       throw new NotFoundException(`No se encontró la playlist con ID ${listId}`);
     }
-  
+
     const canciones = playlist.posiciones.map(posicion => ({
       id: posicion.cancion.Id,
       nombre: posicion.cancion.Nombre,
@@ -111,7 +111,7 @@ export class PlaylistsService {
       numFavoritos: posicion.cancion.NumFavoritos,
       portada: posicion.cancion.Portada,
     }));
-  
+
     return { canciones };
   }
 
@@ -627,6 +627,13 @@ export class PlaylistsService {
       select: {
         TipoPrivacidad: true,
         Genero: true,
+        EmailAutor: true,
+        autor: {
+          select: {
+            Nick: true,
+            Privacidad: true,
+          },
+        },
       },
     });
 
@@ -634,8 +641,14 @@ export class PlaylistsService {
       throw new NotFoundException('No se encontró la playlist con la ID proporcionada.');
     }
 
-    return playlist;
+    return {
+      TipoPrivacidad: playlist.TipoPrivacidad,
+      Genero: playlist.Genero,
+      EmailAutor: playlist.EmailAutor,
+      Autor: playlist.autor,
+    };
   }
+
 
 
   /**
