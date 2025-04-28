@@ -65,7 +65,7 @@ export class AuthService {
     };
 
     const accessToken = await this.jwtService.signAsync(tokenPayload, {
-      expiresIn: '1m',
+      expiresIn: '30d',
     });
 
     return { accessToken, Email: Usuario.Email, esAdmin: Usuario.esAdmin };

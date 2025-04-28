@@ -28,7 +28,7 @@ export class GeminiService {
       const prompt = `${context}\nUsuario: ${message}\nChatbot:`;
       
       const response = await this.ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-1.5-flash',
         contents: prompt,
       });
       return response;
