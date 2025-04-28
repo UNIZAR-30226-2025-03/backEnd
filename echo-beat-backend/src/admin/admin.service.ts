@@ -1,5 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { BlobServiceClient } from '@azure/storage-blob';
+import { v4 as uuidv4 } from 'uuid';
+import { parseBuffer } from 'music-metadata';
 
 class CreatePlaylistDto {
   name: string;
@@ -17,7 +20,15 @@ const ADMIN_EMAIL = "admin";
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) { }
+  private blobServiceClient: BlobServiceClient;
+  constructor(private readonly prisma: PrismaService) {
+    const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+
+    if (!connectionString) {
+      throw new Error('Azure Storage connection string is not defined');
+    }
+    this.blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+  }
   /**
    * Obtiene todas las playlists predefinidas creadas por el administrador.
    * 
@@ -203,6 +214,163 @@ export class AdminService {
     };
   }
 
+  /**
+ * Crea un nuevo artista en la base de datos.
+ * @param nombre Nombre del artista (debe ser único)
+ * @param biografia Breve biografía del artista
+ * @param foto Archivo de foto de perfil
+ * @returns Objeto con los datos del nuevo artista
+ */
+  async createArtista(nombre: string, biografia: string, foto: Express.Multer.File) {
+    if (!nombre || !biografia || !foto) {
+      throw new BadRequestException('Todos los campos son obligatorios.');
+    }
 
-  
+    const exists = await this.prisma.artista.findUnique({
+      where: { Nombre: nombre },
+    });
+
+    if (exists) {
+      throw new ConflictException('Ya existe un artista con ese nombre.');
+    }
+
+    const containerName = process.env.CONTAINER_ARTIST_PHOTOS;
+    if (!containerName) {
+      throw new Error('La variable de entorno CONTAINER_ARTIST_PHOTOS no está definida.');
+    }
+
+    const newBlobName = `${uuidv4()}-${foto.originalname.replace(/\s+/g, '-')}`;
+    const containerClient = this.blobServiceClient.getContainerClient(containerName);
+    const blobClient = containerClient.getBlockBlobClient(newBlobName);
+
+    await blobClient.uploadData(foto.buffer, {
+      blobHTTPHeaders: { blobContentType: foto.mimetype },
+    });
+
+    const urlFoto = `${containerClient.url}/${newBlobName}`;
+
+    const nuevoArtista = await this.prisma.artista.create({
+      data: {
+        Nombre: nombre,
+        Biografia: biografia,
+        NumOyentesTotales: 0,
+        FotoPerfil: urlFoto,
+      },
+    });
+
+    return nuevoArtista;
+  }
+
+  /**
+   * Crea una nueva canción en la base de datos y la relaciona con su autor y un álbum asociado.
+   * @param nombre Nombre de la canción
+   * @param genero Género de la canción
+   * @param portada Archivo de imagen
+   * @param mp3 Archivo de audio en formato .mp3
+   * @param nombreArtista Nombre del artista (debe existir)
+   * @returns Objeto con los datos de la nueva canción
+   */
+  async crearCancionCompleta(
+    nombre: string,
+    genero: string,
+    portada: Express.Multer.File,
+    mp3: Express.Multer.File,
+    nombreArtista: string
+  ) {
+    if (!nombre || !genero || !portada || !mp3 || !nombreArtista) {
+      throw new BadRequestException('Todos los campos y archivos son obligatorios.');
+    }
+
+    const containerFotos = process.env.CONTAINER_SONG_PHOTOS;
+    const containerCanciones = process.env.CONTAINER_SONGS;
+
+    if (!containerFotos || !containerCanciones) {
+      throw new Error('Faltan contenedores en variables de entorno.');
+    }
+
+    const nombreImg = `${uuidv4()}-${portada.originalname.replace(/\s+/g, '-')}`;
+    const clientFoto = this.blobServiceClient.getContainerClient(containerFotos);
+    const blobFoto = clientFoto.getBlockBlobClient(nombreImg);
+    await blobFoto.uploadData(portada.buffer, {
+      blobHTTPHeaders: { blobContentType: portada.mimetype },
+    });
+    const urlFoto = `${clientFoto.url}/${nombreImg}`;
+
+    const nombreMp3 = `${nombre.trim().replace(/\s+/g, '_')}.mp3`;
+    const clientMp3 = this.blobServiceClient.getContainerClient(containerCanciones);
+    const blobMp3 = clientMp3.getBlockBlobClient(nombreMp3);
+    await blobMp3.uploadData(mp3.buffer, {
+      blobHTTPHeaders: { blobContentType: 'application/octet-stream' },
+    });
+
+    const metadata = await parseBuffer(mp3.buffer, mp3.mimetype);
+    const duracionEnSegundos = Math.round(metadata.format.duration || 0);
+
+    const artista = await this.prisma.artista.findUnique({
+      where: { Nombre: nombreArtista },
+    });
+
+    if (!artista) {
+      throw new NotFoundException('El artista no existe');
+    }
+
+    const cancion = await this.prisma.cancion.create({
+      data: {
+        Nombre: nombre,
+        Genero: genero,
+        Portada: urlFoto,
+        Duracion: duracionEnSegundos,
+        NumFavoritos: 0,
+        NumReproducciones: 0,
+      },
+    });
+
+    await this.prisma.autorCancion.create({
+      data: {
+        IdCancion: cancion.Id,
+        NombreArtista: nombreArtista,
+      },
+    });
+
+    const album = await this.prisma.album.create({
+      data: {
+        FechaLanzamiento: new Date(),
+        NumReproducciones: 0,
+        lista: {
+          create: {
+            Nombre: `Álbum de ${nombre}`,
+            NumCanciones: 1,
+            Duracion: duracionEnSegundos,
+            NumLikes: 0,
+            Descripcion: `Álbum que contiene la canción ${nombre}`,
+            Portada: urlFoto,
+            TipoLista: 'Album',
+          },
+        },
+      },
+      include: {
+        lista: true,
+      },
+    });
+
+    await this.prisma.autorAlbum.create({
+      data: {
+        IdAlbum: album.Id,
+        NombreArtista: nombreArtista,
+      },
+    });
+
+    await this.prisma.posicionCancion.create({
+      data: {
+        IdLista: album.Id,
+        IdCancion: cancion.Id,
+        Posicion: 0
+      },
+    });
+
+    return {
+      cancion,
+      mensaje: 'Canción, autor y álbum creados correctamente',
+    };
+  }
 }
