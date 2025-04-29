@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, HttpStatus, UseGuards, UploadedFile, UploadedFiles, UseInterceptors, HttpCode, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
-import { AdminAuthGuard } from './admin-auth.guard';
+//import { AdminAuthGuard } from './admin-auth.guard';
 import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 
 
