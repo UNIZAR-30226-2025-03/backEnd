@@ -7,7 +7,7 @@ import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express
 
 @ApiTags('Admin')
 @Controller('admin')
-//@UseGuards(AdminAuthGuard)
+@UseGuards(AdminAuthGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) { }
 
