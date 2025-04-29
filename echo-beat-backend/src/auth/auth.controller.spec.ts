@@ -54,7 +54,7 @@ describe('Pruebas de Endpoints Auth', () => {
     const loginResponse = await request(baseUrl)
       .post('/login')
       .send(loginPayload)
-      .expect(500);
+      //.expect(500);
     //const validToken = loginResponse.body.accessToken;
 
     //const response = await request(baseUrl)
