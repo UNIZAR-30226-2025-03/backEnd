@@ -42,8 +42,8 @@ async function bootstrap() {
   app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
   /* 5️⃣  Swagger solo en procesos REST */
-  const skipSwagger = useCluster && process.env.NODE_APP_INSTANCE === '0';
-  if (!skipSwagger) {
+  const isWsWorker = useCluster && process.env.NODE_APP_INSTANCE === '0';
+  if (!isWsWorker) {          // ← antes era skipSwagger
     const cfg = new DocumentBuilder()
       .setTitle('Echo Beat Backend')
       .setDescription('API de streaming de música')
