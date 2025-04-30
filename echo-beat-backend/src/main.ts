@@ -1,54 +1,87 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule }      from './app.module';
+import { StreamingModule } from './streaming/streaming.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import * as fs from 'fs';
-import * as compression from 'compression';  // Importa el middleware
-import * as bodyParser from 'body-parser';
+import * as fs   from 'fs';
+import * as compression from 'compression';
+import * as bodyParser  from 'body-parser';
 
 async function bootstrap() {
-  const port = process.env.PORT || 3000;
-  let app;
+  /* 1️⃣  HTTPS vs HTTP */
+  const useHttps   = process.env.HTTPS   === 'YES';
+  const port       = useHttps ? 443 : Number(process.env.PORT) || 3000;
 
-  if (process.env.HTTPS === 'YES') {
-    const domain = process.env.DUCKDNS_DOMAIN;
-    const httpsOptions = {
-      key: fs.readFileSync('/home/azureuser/certificates/echobeatapi.duckdns.org/privkey.pem'),
-      cert: fs.readFileSync('/home/azureuser/certificates/echobeatapi.duckdns.org/fullchain.pem'),
-      //key: fs.readFileSync('./certificates/echobeatapi.duckdns.org/privkey.pem'),
-      //cert: fs.readFileSync('./certificates/echobeatapi.duckdns.org/fullchain.pem'),
-    };
-    app = await NestFactory.create(AppModule, { httpsOptions });
-    console.log(`Servidor configurado para HTTPS en dominio: ${domain}`);
-  } else {
-    app = await NestFactory.create(AppModule);
-    console.log(`Servidor configurado para HTTP en puerto: ${port}`);
+  /* 2️⃣  ¿Entramos en clúster?  —> depende solo de CLUSTER=YES */
+  const useCluster = process.env.CLUSTER === 'YES';
+  let   RootModule = AppModule;                     // REST por defecto
+
+  if (useCluster) {
+    const pmId       = process.env.NODE_APP_INSTANCE ?? '0';
+    const isWsWorker = pmId === '0';               // único worker con WS
+    RootModule       = isWsWorker ? StreamingModule : AppModule;
   }
 
-  // Habilita CORS
+  /* 3️⃣  Opciones HTTPS (si procede) */
+  const nestOpts = useHttps
+    ? {
+        httpsOptions: {
+          key : fs.readFileSync('/home/azureuser/certificates/echobeatapi.duckdns.org/privkey.pem'),
+          cert: fs.readFileSync('/home/azureuser/certificates/echobeatapi.duckdns.org/fullchain.pem'),
+          //key: fs.readFileSync('./certificates/echobeatapi.duckdns.org/privkey.pem'),
+          //cert: fs.readFileSync('./certificates/echobeatapi.duckdns.org/fullchain.pem'),
+        },
+      }
+    : {};
+
+  const app = await NestFactory.create(RootModule, nestOpts);
+
+  /* 4️⃣  Middleware global */
   app.enableCors();
-
-  // Habilitar la compresión Gzip para todas las respuestas
   app.use(compression({ threshold: 0 }));
-
-    // Configuración de body-parser para limitar el tamaño de las cargas
-  app.use(bodyParser.json({ limit: '10mb' })); // Limitar el tamaño de los archivos a 10 MB
+  app.use(bodyParser.json({ limit: '10mb' }));
   app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-  // Configuración de Swagger (opcional)
-  const config = new DocumentBuilder()
-    .setTitle('Echo Beat Backend')
-    .setDescription('API de streaming de música')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
-
-  // Iniciar el servidor
-  if (process.env.HTTPS === 'YES') {
-    await app.listen(443, '0.0.0.0');
-  } else {
-    await app.listen(port, '0.0.0.0');
+  /* 5️⃣  Swagger solo en procesos REST */
+  const skipSwagger = useCluster && process.env.NODE_APP_INSTANCE === '0';
+  if (!skipSwagger) {
+    const cfg = new DocumentBuilder()
+      .setTitle('Echo Beat Backend')
+      .setDescription('API de streaming de música')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, cfg));
   }
+
+  await app.listen(port, '0.0.0.0');
+  console.log(
+    `[Worker ${process.env.NODE_APP_INSTANCE ?? 'single'}] ` +
+    `${useHttps ? 'HTTPS' : 'HTTP'} en ${port} ` +
+    `${useCluster && process.env.NODE_APP_INSTANCE === '0' ? '(WS+REST)' : '(REST)'}`,
+  );
 }
+
 bootstrap();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
