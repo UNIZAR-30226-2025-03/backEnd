@@ -53,7 +53,12 @@ async function bootstrap() {
     SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, cfg));
   }
 
-  await app.listen(port, '0.0.0.0');
+  await app.init();                 
+  const server = app.getHttpServer();  
+  server.listen(
+    { port, host: '0.0.0.0', reusePort: true },   
+    () => console.log(`[PID ${process.pid}] LISTEN ${port}`)
+  );
   console.log(
     `[Worker ${process.env.NODE_APP_INSTANCE ?? 'single'}] ` +
     `${useHttps ? 'HTTPS' : 'HTTP'} en ${port} ` +
