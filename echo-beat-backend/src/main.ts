@@ -41,17 +41,15 @@ async function bootstrap() {
   app.use(bodyParser.json({ limit: '10mb' }));
   app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-  /* 5️⃣  Swagger solo en procesos REST */
-  const isWsWorker = useCluster && process.env.NODE_APP_INSTANCE === '0';
-  if (!isWsWorker) {          // ← antes era skipSwagger
-    const cfg = new DocumentBuilder()
-      .setTitle('Echo Beat Backend')
-      .setDescription('API de streaming de música')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
-    SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, cfg));
-  }
+  /* 5️⃣  Registrar Swagger SIEMPRE */
+  const cfg = new DocumentBuilder()
+    .setTitle('Echo Beat Backend')
+    .setDescription('API de streaming de música')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, cfg));
+
 
   await app.init();                 
   const server = app.getHttpServer();  
