@@ -26,6 +26,9 @@ export class SearchService {
             mode: 'insensitive',
           },
         },
+        orderBy: {
+          NumOyentesTotales: 'desc',
+        },
       }) : [],
 
       canciones: tipo === 'canciones' || !tipo ? await this.prisma.cancion.findMany({
@@ -35,6 +38,9 @@ export class SearchService {
             mode: 'insensitive',
           },
         },
+        orderBy: {
+          NumReproducciones: 'desc',
+        }
       }) : [],
 
       albums: tipo === 'albums' || !tipo ? await this.prisma.album.findMany({
@@ -45,6 +51,9 @@ export class SearchService {
               mode: 'insensitive',
             },
           },
+        },
+        orderBy: {
+          NumReproducciones: 'desc',
         },
         include: {
           lista: {
@@ -67,6 +76,7 @@ export class SearchService {
       }).then(albums => albums.map(album => ({
         id: album.Id,
         nombre: album.lista.Nombre,
+        numReproducciones: album.NumReproducciones,
         portada: album.lista.Portada,
         numCanciones: album.lista.NumCanciones,
         autor: album.autores.length > 0 ? album.autores[0].artista.Nombre : null,
@@ -79,6 +89,11 @@ export class SearchService {
             mode: 'insensitive',
           },
           TipoPrivacidad: 'publico',
+        },
+        orderBy: {
+          lista: {
+            NumLikes: 'desc',
+          },
         },
         include: {
           lista: {
@@ -103,6 +118,11 @@ export class SearchService {
             mode: 'insensitive',
           },
           TipoPrivacidad: 'publico',
+        },
+        orderBy: {
+          lista: {
+            NumLikes: 'desc',
+          },
         },
         include: {
           lista: {
@@ -179,6 +199,11 @@ export class SearchService {
           contains: query,
           mode: 'insensitive',
         } : undefined,
+      },
+      orderBy: {
+        lista: {
+          NumLikes: 'desc',
+        },
       },
       include: {
         lista: {
