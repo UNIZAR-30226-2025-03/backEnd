@@ -2,14 +2,15 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 export let options = {
-  vus: 100,           // Usuarios virtuales concurrentes
+  vus: 50000,           // Usuarios virtuales concurrentes
   duration: '60s',   // Duración total del test
 };
 
 const email = 'aaaaaa%40gmail.com';  // Email válido de prueba
 
 export default function () {
-  const url = 'https://echobeatapi.duckdns.org/users/first-song?Email=aaaaaa%40gmail.com';
+  //const url = 'https://echobeatapi.duckdns.org/users/first-song?Email=aaaaaa%40gmail.com';
+  const url = 'https://echobeatapi.duckdns.org/playlists/default-photos';
   //const url = https://nogler.ddns.net/allusers;
   const res = http.get(url);
 
